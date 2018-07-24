@@ -9,5 +9,7 @@
     ],
     "plugins": [
         "transform-async-generator-functions"
-    ]
+    ],
+    "retainLines": true,
+  "sourceMaps": true
 }
