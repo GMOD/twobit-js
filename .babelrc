@@ -1,0 +1,13 @@
+{
+    "presets": [
+        ["env", {
+        "targets": {
+          "browsers": ["last 2 versions", "safari >= 9"],
+          "node": "6.10"
+        }
+      }]
+    ],
+    "plugins": [
+        "transform-async-generator-functions"
+    ]
+}
