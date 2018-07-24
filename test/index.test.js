@@ -42,6 +42,7 @@ describe('.2bit data store with T_ko.2bit', () => {
 
     expect(t.byteSwapped).toBe(true)
     expect(features.length).toEqual(1)
+    expect(features[0].seq.length).toEqual(10000)
     expect(features[0].seq.split('')).toEqual(pythonReaderOutput.split(''))
   })
 
