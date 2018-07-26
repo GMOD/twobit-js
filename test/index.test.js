@@ -1,4 +1,4 @@
-const TwoBitFile = require('../src/twoBitFile')
+const { TwoBitFile } = require('../src')
 
 describe('.2bit data store', () => {
   it('loads some small bits of data from foo.2bit', async () => {
