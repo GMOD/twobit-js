@@ -66,7 +66,7 @@ describe('.2bit data store', () => {
   })
 
   it(
-    'can get all the lengths in out2.2bit in reasonable time',
+    'can get all the sequences and lengths in out2.2bit in reasonable time',
     async () => {
       const t = new TwoBitFile({
         path: require.resolve('./data/out2.2bit'),
@@ -78,4 +78,13 @@ describe('.2bit data store', () => {
     },
     6000,
   )
+
+  it('can get the length of ctgA in volvox.2bit', async () => {
+    const t2 = new TwoBitFile({
+      path: require.resolve('./data/volvox.2bit'),
+    })
+
+    expect(await t2.getSequenceSize('ctgA')).toBe(50001)
+    expect(await t2.getSequenceSize('ctgB')).toBe(6079)
+  })
 })

@@ -164,7 +164,7 @@ class TwoBitFile {
   }
 
   /**
-   * @returns [Promise] for an object as seqName => length
+   * @returns {Promise} for an object listing the lengths of all sequences as seqName => length
    */
   async getSeqSizes() {
     const index = await this.getIndex()
@@ -178,6 +178,17 @@ class TwoBitFile {
       returnObject[seqNames[i]] = sizes[i]
     }
     return returnObject
+  }
+
+  /**
+   * @param {string} seqName
+   * @returns {Promise[number]} the sequence's length, or undefined if it is not in the file
+   */
+  async getSequenceSize(seqName) {
+    const index = await this.getIndex()
+    const offset = index[seqName]
+    if (!offset) return undefined
+    return this._getSequenceSize(offset)
   }
 
   async _getSequenceSize(offset) {
