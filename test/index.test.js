@@ -7,9 +7,9 @@ describe('.2bit data store', () => {
       seqChunkSize: 3,
     })
 
-    // expect(await t.getSequence('foo', 3, 4)).toBe(undefined)
-    // expect(await t.getSequence('chr1', 0, 2)).toBe('NN')
-    // expect(await t.getSequence('chr1', 3, 4)).toBe('N')
+    expect(await t.getSequence('foo', 3, 4)).toBe(undefined)
+    expect(await t.getSequence('chr1', 0, 2)).toBe('NN')
+    expect(await t.getSequence('chr1', 3, 4)).toBe('N')
     expect(await t.getSequence('chr1', 45, 50)).toBe('NNACT')
     expect(await t.getSequence('chr1', 156, 159)).toBe('CgN')
     expect(await t.getSequence('chr1', 85, 136)).toBe(
