@@ -13,12 +13,17 @@ Read .2bit sequence files using pure JavaScript, works in node or in the browser
 
 ```js
 const { TwoBitFile } = require('@gmod/twobit')
-const mytwobit = new TwoBitFile({
+const t = new TwoBitFile({
   path: require.resolve('./data/foo.2bit'),
 })
 
-const chr1Bases = await t.getSequence('chr1', 45, 50)
-// chr1Bases is now a string of bases, 'ACTG...'
+// get the first 10 bases of a sequence from the file.
+// coordinates are UCSC standard 0-based half-open
+const chr1Region = await t.getSequence('chr1', 0, 10)
+// chr1Region is now a string of bases, 'ACTG...'
+
+// get a whole sequence from the file
+const chr1Bases = await t.getSequence('chr1')
 
 // get object with all seq lengths as { seqName => length, ... }
 const allSequenceSizes = await t.getSequenceSizes()
