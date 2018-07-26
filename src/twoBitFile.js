@@ -167,7 +167,24 @@ class TwoBitFile {
    * @returns [Promise] for an object as seqName => length
    */
   async getSeqSizes() {
-    // TODO
+    const index = await this.getIndex()
+    const seqNames = Object.keys(index)
+    const sizePromises = Object.values(index).map(offset =>
+      this._getSequenceSize(offset),
+    )
+    const sizes = await Promise.all(sizePromises)
+    const returnObject = {}
+    for (let i = 0; i < seqNames.length; i += 1) {
+      returnObject[seqNames[i]] = sizes[i]
+    }
+    return returnObject
+  }
+
+  async _getSequenceSize(offset) {
+    // we have to parse the sequence record in 3 parts, because we have to buffer 3 fixed-length file reads
+    if (offset === undefined) throw new Error('invalid offset')
+    const rec1 = await this._parseItem(offset, 8, 'record1')
+    return rec1.dnaSize
   }
 
   // /**
@@ -189,24 +206,12 @@ class TwoBitFile {
       rec3DataLength,
       'record3',
     )
-    // const nBlocks = rec2.nBlockSizes.map((size, i) => ({
-    //   end: rec2.nBlockStarts[i] + size,
-    //   start: rec2.nBlockStarts[i],
-    //   size,
-    // }))
-    // const maskBlocks = rec3.maskBlockSizes.map((size, i) => ({
-    //   end: rec3.maskBlockStarts[i] + size,
-    //   start: rec3.maskBlockStarts[i],
-    //   size,
-    // }))
 
     const rec = {
       dnaSize: rec1.dnaSize,
       nBlocks: { starts: rec2.nBlockStarts, sizes: rec2.nBlockSizes },
       maskBlocks: { starts: rec3.maskBlockStarts, sizes: rec3.maskBlockSizes },
       dnaPosition: offset + 4 + rec2DataLength - 4 + rec3DataLength,
-      // dnaPosition2:
-      //   offset + 8 + nBlocks.length * 8 + 4 + maskBlocks.length * 8 + 4,
     }
     return rec
   }
@@ -233,8 +238,11 @@ class TwoBitFile {
     // fetch the record for the seq
     const record = await this._getSequenceRecord(offset)
 
+    if (regionStart < 0) {
+      throw new TypeError('regionStart cannot be less than 0')
+    }
     // end defaults to the end of the sequence
-    if (regionEnd === undefined) {
+    if (regionEnd === undefined || regionEnd > record.dnaSize) {
       regionEnd = record.dnaSize
     }
 
@@ -303,34 +311,6 @@ class TwoBitFile {
 
     return sequenceBases
   }
-
-  // _getDnaChunk(dnaPosition, chunkNumber) {
-  //   // keep a one-chunk cache of DNA chunks.  might instead think
-  //   // about keeping an LRU cache instead at some point
-  //   if (this.currentDnaChunkNumber !== chunkNumber) {
-  //     const dnaBytes = Buffer.allocUnsafe(this.seqChunkSize)
-  //     this.currentDnaChunkNumber = chunkNumber
-  //     this.currentDnaChunk = this.filehandle
-  //       .read(
-  //         dnaBytes,
-  //         0,
-  //         this.seqChunkSize,
-  //         dnaPosition + chunkNumber * this.seqChunkSize,
-  //       )
-  //       .then(() => dnaBytes)
-  //   }
-  //   return this.currentDnaChunk
-  // }
-
-  // _getBasePair(record, bytePosition, subPosition) {
-  //   const chunkNumber = Math.floor(bytePosition / this.seqChunkSize)
-  //   const chunkPromise = this._getDnaChunk(record.dnaPosition, chunkNumber)
-  //   return chunkPromise.then(chunk => {
-  //     const currentByteBases =
-  //       byteTo4Bases[chunk[bytePosition - chunkNumber * this.seqChunkSize]]
-  //     return currentByteBases[subPosition]
-  //   })
-  // }
 
   _getOverlappingBlocks(regionStart, regionEnd, blockStarts, blockSizes) {
     // find the start and end indexes of the blocks that match
