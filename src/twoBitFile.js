@@ -1,4 +1,4 @@
-const Parser = require('binary-parser').Parser
+const { Parser } = require('binary-parser')
 
 const fs = typeof window === 'undefined' ? require('fs-extra') : undefined
 
