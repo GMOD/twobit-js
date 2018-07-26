@@ -139,7 +139,7 @@ class TwoBitFile {
 
   // memoize
   /**
-   * @returns {Promise} object with the file's header information, like
+   * @returns {Promise} for object with the file's header information, like
    *  `{ magic: 0x1a412743, version: 0, sequenceCount: 42, reserved: 0 }`
    */
   async getHeader() {
@@ -154,7 +154,7 @@ class TwoBitFile {
 
   // memoize
   /**
-   * @returns {Promise} object with the file's index of offsets, like `{ seqName => fileOffset, ...}`
+   * @returns {Promise} for object with the file's index of offsets, like `{ seqName => fileOffset, ...}`
    */
   async getIndex() {
     const header = await this.getHeader()
@@ -171,7 +171,7 @@ class TwoBitFile {
   }
 
   /**
-   * @returns {Promise} an array of string sequence names that are found in the file
+   * @returns {Promise} for an array of string sequence names that are found in the file
    */
   async getSequenceNames() {
     const index = await this.getIndex()
@@ -244,9 +244,9 @@ class TwoBitFile {
 
   /**
    * @param {string} seqName name of the sequence you want
-   * @param {number} [regionStart] optional 0-based half-open start of the sequence region to fetch. default 0.
+   * @param {number} [regionStart] optional 0-based half-open start of the sequence region to fetch.
    * @param {number} [regionEnd] optional 0-based half-open end of the sequence region to fetch. defaults to end of the sequence
-   * @returns {Promise} promise for a string of sequence bases
+   * @returns {Promise} for a string of sequence bases
    */
   async getSequence(seqName, regionStart = 0, regionEnd) {
     const index = await this.getIndex()

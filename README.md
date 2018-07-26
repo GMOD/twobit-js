@@ -47,7 +47,7 @@ const seqNames = await t.getSequenceNames()
 -   [getHeader](#getheader)
 -   [getIndex](#getindex)
 -   [getSequenceNames](#getsequencenames)
--   [getSeqSizes](#getseqsizes)
+-   [getSequenceSizes](#getsequencesizes)
 -   [getSequenceSize](#getsequencesize)
 -   [getSequence](#getsequence)
 
@@ -63,18 +63,18 @@ const seqNames = await t.getSequenceNames()
 
 #### getHeader
 
-Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)** object with the file's header information, like
+Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)** for object with the file's header information, like
  `{ magic: 0x1a412743, version: 0, sequenceCount: 42, reserved: 0 }`
 
 #### getIndex
 
-Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)** object with the file's index of offsets, like `{ seqName => fileOffset, ...}`
+Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)** for object with the file's index of offsets, like `{ seqName => fileOffset, ...}`
 
 #### getSequenceNames
 
-Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)** an array of string sequence names that are found in the file
+Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)** for an array of string sequence names that are found in the file
 
-#### getSeqSizes
+#### getSequenceSizes
 
 Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)** for an object listing the lengths of all sequences as seqName => length
 
@@ -89,10 +89,10 @@ Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/
 **Parameters**
 
 -   `seqName` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** name of the sequence you want
--   `regionStart` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)?** optional 0-based half-open start of the sequence region to fetch. default 0. (optional, default `0`)
+-   `regionStart` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)?** optional 0-based half-open start of the sequence region to fetch. (optional, default `0`)
 -   `regionEnd` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)?** optional 0-based half-open end of the sequence region to fetch. defaults to end of the sequence
 
-Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)** promise for a string of sequence bases
+Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)** for a string of sequence bases
 
 ## License
 
