@@ -39,6 +39,8 @@ const seqNames = await t.getSequenceNames()
 ##### Table of Contents
 
 -   [constructor](#constructor)
+-   [getHeader](#getheader)
+-   [getIndex](#getindex)
 -   [getSequenceNames](#getsequencenames)
 -   [getSeqSizes](#getseqsizes)
 -   [getSequenceSize](#getsequencesize)
@@ -49,9 +51,19 @@ const seqNames = await t.getSequenceNames()
 **Parameters**
 
 -   `args` **[object](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object)** 
-    -   `args.filehandle` **Filehandle** node fs.promises filehandle for the .2bit file
-    -   `args.path` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** filesystem path for the .2bit file to open
-    -   `args.seqChunkSize` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)?** size of chunks of sequence bytes to fetch. default 32KiB
+    -   `args.filehandle` **Filehandle?** node fs.promises-like filehandle for the .2bit file.
+         Only needs to support `filehandle.read(buffer, offset, length, position)`
+    -   `args.path` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)?** filesystem path for the .2bit file to open
+    -   `args.seqChunkSize`  
+
+#### getHeader
+
+Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)** object with the file's header information, like
+ `{ magic: 0x1a412743, version: 0, sequenceCount: 42, reserved: 0 }`
+
+#### getIndex
+
+Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)** object with the file's index of offsets, like `{ seqName => fileOffset, ...}`
 
 #### getSequenceNames
 
@@ -71,11 +83,9 @@ Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/
 
 **Parameters**
 
--   `seqName` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** 
--   `regionStart`   (optional, default `0`)
--   `regionEnd`  
--   `start` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)?** optional 0-based half-open start of the sequence region to fetch. default 0.
--   `end` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)?** optional 0-based half-open end of the sequence region to fetch. defaults to end of the sequence
+-   `seqName` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** name of the sequence you want
+-   `regionStart` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)?** optional 0-based half-open start of the sequence region to fetch. default 0. (optional, default `0`)
+-   `regionEnd` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)?** optional 0-based half-open end of the sequence region to fetch. defaults to end of the sequence
 
 Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)** promise for a string of sequence bases
 

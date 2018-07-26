@@ -138,6 +138,10 @@ class TwoBitFile {
   }
 
   // memoize
+  /**
+   * @returns {Promise} object with the file's header information, like
+   *  `{ magic: 0x1a412743, version: 0, sequenceCount: 42, reserved: 0 }`
+   */
   async getHeader() {
     await this._detectEndianness()
 
@@ -149,6 +153,9 @@ class TwoBitFile {
   }
 
   // memoize
+  /**
+   * @returns {Promise} object with the file's index of offsets, like `{ seqName => fileOffset, ...}`
+   */
   async getIndex() {
     const header = await this.getHeader()
     const maxIndexLength = 8 + header.sequenceCount * (1 + 256 + 4)
@@ -206,13 +213,6 @@ class TwoBitFile {
     return rec1.dnaSize
   }
 
-  // /**
-  //  * @returns async iterator of string sequence names
-  //  */
-  // async *listSequences() {
-  //   const index = await this.getIndex()
-  // }
-
   async _getSequenceRecord(offset) {
     // we have to parse the sequence record in 3 parts, because we have to buffer 3 fixed-length file reads
     if (offset === undefined) throw new Error('invalid offset')
@@ -243,9 +243,9 @@ class TwoBitFile {
   }
 
   /**
-   * @param {string} seqName
-   * @param {number} [start] optional 0-based half-open start of the sequence region to fetch. default 0.
-   * @param {number} [end] optional 0-based half-open end of the sequence region to fetch. defaults to end of the sequence
+   * @param {string} seqName name of the sequence you want
+   * @param {number} [regionStart] optional 0-based half-open start of the sequence region to fetch. default 0.
+   * @param {number} [regionEnd] optional 0-based half-open end of the sequence region to fetch. defaults to end of the sequence
    * @returns {Promise} promise for a string of sequence bases
    */
   async getSequence(seqName, regionStart = 0, regionEnd) {
