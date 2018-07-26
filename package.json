@@ -43,6 +43,7 @@
   "keywords": [],
   "dependencies": {
     "binary-parser": "^1.3.2",
+    "fs-extra": "^7.0.0",
     "util.promisify": "^1.0.0"
   },
   "devDependencies": {
@@ -60,7 +61,6 @@
     "eslint-config-prettier": "^2.9.0",
     "eslint-plugin-import": "^2.10.0",
     "eslint-plugin-prettier": "^2.6.0",
-    "fs-extra": "^7.0.0",
     "jest-cli": "^22.4.3",
     "npm-watch": "^0.3.0",
     "opn-cli": "^3.1.0",
