@@ -41,9 +41,9 @@ class LocalFile {
 class TwoBitFile {
   /**
    * @param {object} args
-   * @param {string} args.path filesystem path for the .2bit file to open
-   * @param {Filehandle} args.filehandle node fs.promises filehandle for the .2bit file
-   * @param {number} [args.seqChunkSize] size of chunks of sequence bytes to fetch. default 32KiB
+   * @param {string} [args.path] filesystem path for the .2bit file to open
+   * @param {Filehandle} [args.filehandle] node fs.promises-like filehandle for the .2bit file.
+   *  Only needs to support `filehandle.read(buffer, offset, length, position)`
    */
   constructor({ filehandle, path, seqChunkSize }) {
     if (filehandle) this.filehandle = filehandle
@@ -161,6 +161,14 @@ class TwoBitFile {
       index[name] = offset
     })
     return index
+  }
+
+  /**
+   * @returns {Promise} an array of string sequence names that are found in the file
+   */
+  async getSequenceNames() {
+    const index = await this.getIndex()
+    return Object.keys(index)
   }
 
   /**
@@ -355,5 +363,9 @@ class TwoBitFile {
     return blocks
   }
 }
+
+tinyMemoize(TwoBitFile, '_getParsers')
+tinyMemoize(TwoBitFile, 'getIndex')
+tinyMemoize(TwoBitFile, 'getHeader')
 
 module.exports = TwoBitFile
