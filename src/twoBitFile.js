@@ -181,7 +181,7 @@ class TwoBitFile {
   /**
    * @returns {Promise} for an object listing the lengths of all sequences as seqName => length
    */
-  async getSeqSizes() {
+  async getSequenceSizes() {
     const index = await this.getIndex()
     const seqNames = Object.keys(index)
     const sizePromises = Object.values(index).map(offset =>

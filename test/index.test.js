@@ -72,7 +72,7 @@ describe('.2bit data store', () => {
         path: require.resolve('./data/out2.2bit'),
       })
 
-      const sizes = await t.getSeqSizes()
+      const sizes = await t.getSequenceSizes()
       expect(Object.keys(sizes).length).toEqual(10000)
       expect(sizes['1']).toBe(4)
     },
