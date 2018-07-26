@@ -7,11 +7,10 @@ matrix:
 script:
   - set -e
   - npm run build
-  - if [ "x$BACKCOMPAT" = "x" ]; then npm run test; fi
-  - if [ "x$BACKCOMPAT" = "x" ]; then npm run coverage; fi
-  - rm -rf src
-  - mv dist src
-#  - if [ $BACKCOMPAT = "true" ]; then npm run built-tests; else npm run test; fi
+  - npm run test
+  # - if [ "x$BACKCOMPAT" = "x" ]; then npm run test; fi
+  # - rm -rf src
+  # - mv dist src
+  # - if [ $BACKCOMPAT = "true" ]; then npm run built-tests; else npm run test; fi
 cache:
   - node_modules
-  
