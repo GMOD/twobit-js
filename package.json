@@ -1,10 +1,10 @@
 {
-  "name": "example",
+  "name": "@gmod/twobit",
   "version": "0.0.1-alpha.0",
-  "description": "package template",
+  "description": "Read .2bit files in node or webpack",
   "license": "MIT",
-  "repository": "rbuels/example",
   "main": "dist/index.js",
+  "repository": "GMOD/twobit-js",
   "author": {
     "name": "Robert Buels",
     "email": "rbuels@gmail.com",
@@ -40,7 +40,10 @@
   "jest": {
     "testEnvironment": "node"
   },
-  "keywords": [],
+  "keywords": [
+    "bionode",
+    "biojs"
+  ],
   "dependencies": {
     "binary-parser": "^1.3.2",
     "fs-extra": "^7.0.0",
