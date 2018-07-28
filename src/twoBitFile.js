@@ -1,6 +1,7 @@
 const { Parser } = require('binary-parser')
 
 const fs =
+  // eslint-disable-next-line camelcase
   typeof __webpack_require__ !== 'function' ? require('fs-extra') : undefined
 
 const TWOBIT_MAGIC = 0x1a412743
