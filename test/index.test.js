@@ -12,6 +12,9 @@ describe('.2bit data store', () => {
     expect(await t.getSequence('chr1', 3, 4)).toBe('N')
     expect(await t.getSequence('chr1', 45, 50)).toBe('NNACT')
     expect(await t.getSequence('chr1', 156, 159)).toBe('CgN')
+    expect(await t.getSequence('chr1', 155, 159)).toBe('NCgN')
+    expect(await t.getSequence('chr1', 155, 158)).toBe('NCg')
+    expect(await t.getSequence('chr1', 154, 158)).toBe('CNCg')
     expect(await t.getSequence('chr1', 85, 136)).toBe(
       'GGGagagagagactctagcatcctcctacctcacNNacCNctTGGACNCcC',
     )

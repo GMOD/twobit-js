@@ -281,7 +281,7 @@ class TwoBitFile {
     )
 
     const baseBytes = Buffer.allocUnsafe(
-      Math.ceil((regionEnd - regionStart) / 4),
+      Math.ceil((regionEnd - regionStart) / 4) + 1,
     )
     const baseBytesOffset = Math.floor(regionStart / 4)
     await this.filehandle.read(
