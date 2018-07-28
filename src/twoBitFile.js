@@ -1,3 +1,4 @@
+const Long = require('long')
 const { Parser } = require('binary-parser')
 
 const fs =
@@ -61,12 +62,14 @@ class TwoBitFile {
   }
 
   async _detectEndianness() {
-    const buf = Buffer.allocUnsafe(4)
-    await this.filehandle.read(buf, 0, 4, 0)
+    const buf = Buffer.allocUnsafe(8)
+    await this.filehandle.read(buf, 0, 8, 0)
     if (buf.readInt32LE(0) === TWOBIT_MAGIC) {
       this.isBigEndian = false
+      this.version = buf.readInt32LE(4)
     } else if (buf.readInt32BE(0) === TWOBIT_MAGIC) {
       this.isBigEndian = true
+      this.version = buf.readInt32BE(4)
     } else {
       throw new Error('not a 2bit file')
     }
@@ -82,6 +85,18 @@ class TwoBitFile {
 
     const endianess = this.isBigEndian ? 'big' : 'little'
     const lebe = this.isBigEndian ? 'be' : 'le'
+
+    let indexEntryParser = new Parser()
+      .endianess(endianess)
+      .uint8('nameLength')
+      .string('name', { length: 'nameLength' })
+    if (this.version === 1) {
+      indexEntryParser = indexEntryParser.buffer('offsetBytes', {
+        length: 8,
+      })
+    } else {
+      indexEntryParser = indexEntryParser.int32('offset')
+    }
     return {
       header: new Parser()
         .endianess(endianess)
@@ -89,7 +104,7 @@ class TwoBitFile {
           assert: m => m === 0x1a412743,
         })
         .int32('version', {
-          assert: v => v === 0,
+          assert: v => v === 0 || v === 1,
         })
         .int32('sequenceCount', {
           assert: v => v >= 0,
@@ -101,11 +116,7 @@ class TwoBitFile {
         .int32('reserved')
         .array('index', {
           length: 'sequenceCount',
-          type: new Parser()
-            .endianess(endianess)
-            .uint8('nameLength')
-            .string('name', { length: 'nameLength' })
-            .uint32('offset'),
+          type: indexEntryParser,
         }),
       record1: new Parser()
         .endianess(endianess)
@@ -160,15 +171,27 @@ class TwoBitFile {
    */
   async getIndex() {
     const header = await this.getHeader()
-    const maxIndexLength = 8 + header.sequenceCount * (1 + 256 + 4)
+    const maxIndexLength =
+      8 + header.sequenceCount * (1 + 256 + (this.version === 1 ? 8 : 4))
     const buf = Buffer.allocUnsafe(maxIndexLength)
     await this.filehandle.read(buf, 0, maxIndexLength, 8)
     const indexParser = await this._getParser('index')
     const indexData = indexParser.parse(buf).index
     const index = {}
-    indexData.forEach(({ name, offset }) => {
-      index[name] = offset
-    })
+    if (this.version === 1) {
+      indexData.forEach(({ name, offsetBytes }) => {
+        const long = Long.fromBytes(offsetBytes, false, !this.isBigEndian)
+        if (long.greaterThan(Number.MAX_SAFE_INTEGER))
+          throw new Error(
+            'integer overflow. File offset greater than 2^53-1 encountered. This library can only handle offsets up to 2^53-1.',
+          )
+        index[name] = long.toNumber()
+      })
+    } else {
+      indexData.forEach(({ name, offset }) => {
+        index[name] = offset
+      })
+    }
     return index
   }
 

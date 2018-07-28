@@ -82,9 +82,32 @@ describe('.2bit data store', () => {
     6000,
   )
 
+  it(
+    'can get all the sequences and lengths in out2.long.2bit in reasonable time',
+    async () => {
+      const t = new TwoBitFile({
+        path: require.resolve('./data/out2.long.2bit'),
+      })
+
+      const sizes = await t.getSequenceSizes()
+      expect(Object.keys(sizes).length).toEqual(10000)
+      expect(sizes['1']).toBe(4)
+    },
+    6000,
+  )
+
   it('can get the length of ctgA in volvox.2bit', async () => {
     const t2 = new TwoBitFile({
       path: require.resolve('./data/volvox.2bit'),
+    })
+
+    expect(await t2.getSequenceSize('ctgA')).toBe(50001)
+    expect(await t2.getSequenceSize('ctgB')).toBe(6079)
+  })
+
+  it('can get the length of ctgA in volvox.long.2bit', async () => {
+    const t2 = new TwoBitFile({
+      path: require.resolve('./data/volvox.long.2bit'),
     })
 
     expect(await t2.getSequenceSize('ctgA')).toBe(50001)
