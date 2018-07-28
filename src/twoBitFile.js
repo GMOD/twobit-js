@@ -62,9 +62,9 @@ class TwoBitFile {
   async _detectEndianness() {
     const buf = Buffer.allocUnsafe(4)
     await this.filehandle.read(buf, 0, 4, 0)
-    if (buf.readInt32LE() === TWOBIT_MAGIC) {
+    if (buf.readInt32LE(0) === TWOBIT_MAGIC) {
       this.isBigEndian = false
-    } else if (buf.readInt32BE() === TWOBIT_MAGIC) {
+    } else if (buf.readInt32BE(0) === TWOBIT_MAGIC) {
       this.isBigEndian = true
     } else {
       throw new Error('not a 2bit file')
