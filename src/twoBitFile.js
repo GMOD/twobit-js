@@ -1,6 +1,7 @@
 const { Parser } = require('binary-parser')
 
-const fs = typeof window === 'undefined' ? require('fs-extra') : undefined
+const fs =
+  typeof __webpack_require__ !== 'function' ? require('fs-extra') : undefined
 
 const TWOBIT_MAGIC = 0x1a412743
 
