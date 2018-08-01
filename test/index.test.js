@@ -1,4 +1,16 @@
+const fs = require('fs')
 const { TwoBitFile } = require('../src')
+
+let extended = xit
+try {
+  if (fs.existsSync(require.resolve(`./data/extended/wheat.2bit`)))
+    extended = it
+} catch (e) {
+  // ignore
+  console.log(
+    'extended tests disabled, download the extended test dataset and fix all the symlinks in tests/data/extended to enable them',
+  )
+}
 
 describe('.2bit data store', () => {
   it('loads some small bits of data from foo.2bit', async () => {
@@ -112,5 +124,40 @@ describe('.2bit data store', () => {
 
     expect(await t2.getSequenceSize('ctgA')).toBe(50001)
     expect(await t2.getSequenceSize('ctgB')).toBe(6079)
+  })
+
+  extended('gets the right sizes for the wheat 2bit file', async () => {
+    const t = new TwoBitFile({
+      path: require.resolve('./data/extended/wheat.2bit'),
+    })
+
+    const index = await t.getIndex()
+    const chr5BRecord = await t._getSequenceRecord(index.chr5B)
+    expect(chr5BRecord.dnaSize).toEqual(713149757)
+
+    expect(await t.getSequenceSizes()).toEqual({
+      chr1A: 594102056,
+      chr1B: 689851870,
+      chr1D: 495453186,
+      chr2A: 780798557,
+      chr2B: 801256715,
+      chr2D: 651852609,
+      chr3A: 750843639,
+      chr3B: 830829764,
+      chr3D: 615552423,
+      chr4A: 744588157,
+      chr4B: 673617499,
+      chr4D: 509857067,
+      chr5A: 709773743,
+      chr5B: 713149757,
+      chr5D: 566080677,
+      chr6A: 618079260,
+      chr6B: 720988478,
+      chr6D: 473592718,
+      chr7A: 736706236,
+      chr7B: 750620385,
+      chr7D: 638686055,
+      chrUn: 480980714,
+    })
   })
 })

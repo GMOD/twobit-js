@@ -95,7 +95,7 @@ class TwoBitFile {
         length: 8,
       })
     } else {
-      indexEntryParser = indexEntryParser.int32('offset')
+      indexEntryParser = indexEntryParser.uint32('offset')
     }
     return {
       header: new Parser()
@@ -106,44 +106,44 @@ class TwoBitFile {
         .int32('version', {
           assert: v => v === 0 || v === 1,
         })
-        .int32('sequenceCount', {
+        .uint32('sequenceCount', {
           assert: v => v >= 0,
         })
-        .int32('reserved'),
+        .uint32('reserved'),
       index: new Parser()
         .endianess(endianess)
-        .int32('sequenceCount')
-        .int32('reserved')
+        .uint32('sequenceCount')
+        .uint32('reserved')
         .array('index', {
           length: 'sequenceCount',
           type: indexEntryParser,
         }),
       record1: new Parser()
         .endianess(endianess)
-        .int32('dnaSize')
-        .int32('nBlockCount'),
+        .uint32('dnaSize')
+        .uint32('nBlockCount'),
       record2: new Parser()
         .endianess(endianess)
-        .int32('nBlockCount')
+        .uint32('nBlockCount')
         .array('nBlockStarts', {
           length: 'nBlockCount',
-          type: `int32${lebe}`,
+          type: `uint32${lebe}`,
         })
         .array('nBlockSizes', {
           length: 'nBlockCount',
-          type: `int32${lebe}`,
+          type: `uint32${lebe}`,
         })
-        .int32('maskBlockCount'),
+        .uint32('maskBlockCount'),
       record3: new Parser()
         .endianess(endianess)
-        .int32('maskBlockCount')
+        .uint32('maskBlockCount')
         .array('maskBlockStarts', {
           length: 'maskBlockCount',
-          type: `int32${lebe}`,
+          type: `uint32${lebe}`,
         })
         .array('maskBlockSizes', {
           length: 'maskBlockCount',
-          type: `int32${lebe}`,
+          type: `uint32${lebe}`,
         })
         .int32('reserved'),
       // .buffer('packedDna', { length: 'dnaSize' }),
@@ -180,7 +180,7 @@ class TwoBitFile {
     const index = {}
     if (this.version === 1) {
       indexData.forEach(({ name, offsetBytes }) => {
-        const long = Long.fromBytes(offsetBytes, false, !this.isBigEndian)
+        const long = Long.fromBytes(offsetBytes, true, !this.isBigEndian)
         if (long.greaterThan(Number.MAX_SAFE_INTEGER))
           throw new Error(
             'integer overflow. File offset greater than 2^53-1 encountered. This library can only handle offsets up to 2^53-1.',
@@ -233,14 +233,14 @@ class TwoBitFile {
 
   async _getSequenceSize(offset) {
     // we have to parse the sequence record in 3 parts, because we have to buffer 3 fixed-length file reads
-    if (offset === undefined) throw new Error('invalid offset')
+    if (offset === undefined || offset < 0) throw new Error('invalid offset')
     const rec1 = await this._parseItem(offset, 8, 'record1')
     return rec1.dnaSize
   }
 
   async _getSequenceRecord(offset) {
     // we have to parse the sequence record in 3 parts, because we have to buffer 3 fixed-length file reads
-    if (offset === undefined) throw new Error('invalid offset')
+    if (offset === undefined || offset < 0) throw new Error('invalid offset')
     const rec1 = await this._parseItem(offset, 8, 'record1')
     const rec2DataLength = rec1.nBlockCount * 8 + 8
     const rec2 = await this._parseItem(offset + 4, rec2DataLength, 'record2')
