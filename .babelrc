@@ -8,5 +8,13 @@
       }]
     ],
     "retainLines": true,
-    "sourceMaps": true
+    "sourceMaps": true,
+    "plugins": [
+      ["transform-runtime", {
+        "helpers": true,
+        "polyfill": true,
+        "regenerator": true,
+        "moduleName": "babel-runtime"
+      }]
+    ]
 }
