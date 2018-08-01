@@ -167,7 +167,7 @@ class TwoBitFile {
 
   // memoize
   /**
-   * @returns {Promise} for object with the file's index of offsets, like `{ seqName => fileOffset, ...}`
+   * @returns {Promise} for object with the file's index of offsets, like `{ seqName: fileOffset, ...}`
    */
   async getIndex() {
     const header = await this.getHeader()
@@ -204,7 +204,7 @@ class TwoBitFile {
   }
 
   /**
-   * @returns {Promise} for an object listing the lengths of all sequence like `{seqName => length, ...}`
+   * @returns {Promise} for an object listing the lengths of all sequences like `{seqName: length, ...}`
    */
   async getSequenceSizes() {
     const index = await this.getIndex()
