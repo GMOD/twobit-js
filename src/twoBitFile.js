@@ -1,5 +1,5 @@
 const Long = require('long')
-const { Parser } = require('binary-parser')
+const { Parser } = require('@gmod/binary-parser')
 
 const fs =
   // eslint-disable-next-line camelcase
@@ -162,7 +162,7 @@ class TwoBitFile {
     await this.filehandle.read(buf, 0, 16, 0)
 
     const headerParser = await this._getParser('header')
-    return headerParser.parse(buf)
+    return headerParser.parse(buf).result
   }
 
   // memoize
@@ -176,7 +176,7 @@ class TwoBitFile {
     const buf = Buffer.allocUnsafe(maxIndexLength)
     await this.filehandle.read(buf, 0, maxIndexLength, 8)
     const indexParser = await this._getParser('index')
-    const indexData = indexParser.parse(buf).index
+    const indexData = indexParser.parse(buf).result.index
     const index = {}
     if (this.version === 1) {
       indexData.forEach(({ name, offsetBytes }) => {
@@ -264,7 +264,7 @@ class TwoBitFile {
     const buf = Buffer.allocUnsafe(length)
     await this.filehandle.read(buf, 0, length, offset)
     const parser = await this._getParser(parserName)
-    return parser.parse(buf)
+    return parser.parse(buf).result
   }
 
   /**
