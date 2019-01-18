@@ -19,7 +19,6 @@
   "scripts": {
     "test": "jest",
     "coverage": "npm test -- --coverage",
-    "postcoverage": "opn coverage/lcov-report/index.html",
     "lint": "eslint src test",
     "docs": "documentation readme src/twoBitFile.js --section=TwoBitFile",
     "clean": "rimraf dist",
@@ -66,7 +65,6 @@
     "istanbul": "^0.4.5",
     "jest-cli": "^23.4.1",
     "npm-watch": "^0.5.0",
-    "opn-cli": "^4.0.0",
     "prettier": "^1.11.1",
     "rimraf": "^2.6.2"
   },
