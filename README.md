@@ -5,7 +5,6 @@
 [![Greenkeeper badge](https://badges.greenkeeper.io/GMOD/twobit-js.svg)](https://greenkeeper.io/)
 [![codecov](https://codecov.io/gh/GMOD/twobit-js/branch/master/graph/badge.svg)](https://codecov.io/gh/GMOD/twobit-js)
 
-
 Read .2bit sequence files using pure JavaScript, works in node or in the browser.
 
 ## Install
@@ -47,16 +46,19 @@ const seqNames = await t.getSequenceNames()
 ##### Table of Contents
 
 -   [constructor](#constructor)
+    -   [Parameters](#parameters)
 -   [getHeader](#getheader)
 -   [getIndex](#getindex)
 -   [getSequenceNames](#getsequencenames)
 -   [getSequenceSizes](#getsequencesizes)
 -   [getSequenceSize](#getsequencesize)
+    -   [Parameters](#parameters-1)
 -   [getSequence](#getsequence)
+    -   [Parameters](#parameters-2)
 
 #### constructor
 
-**Parameters**
+##### Parameters
 
 -   `args` **[object](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object)** 
     -   `args.filehandle` **Filehandle?** node fs.promises-like filehandle for the .2bit file.
@@ -83,7 +85,7 @@ Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/
 
 #### getSequenceSize
 
-**Parameters**
+##### Parameters
 
 -   `seqName` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** name of the sequence
 
@@ -91,7 +93,7 @@ Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/
 
 #### getSequence
 
-**Parameters**
+##### Parameters
 
 -   `seqName` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** name of the sequence you want
 -   `regionStart` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)?** optional 0-based half-open start of the sequence region to fetch. (optional, default `0`)
