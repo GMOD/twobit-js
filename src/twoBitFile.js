@@ -97,19 +97,24 @@ class TwoBitFile {
     } else {
       indexEntryParser = indexEntryParser.uint32('offset')
     }
-    return {
-      header: new Parser()
+    /* istanbul ignore next */
+    const header = new Parser()
         .endianess(endianess)
         .int32('magic', {
           assert: m => m === 0x1a412743,
         })
         .int32('version', {
+			/* istanbul ignore next */
           assert: v => v === 0 || v === 1,
         })
         .uint32('sequenceCount', {
+			/* istanbul ignore next */
           assert: v => v >= 0,
         })
-        .uint32('reserved'),
+        .uint32('reserved')
+
+    return {
+      header,
       index: new Parser()
         .endianess(endianess)
         .uint32('sequenceCount')
