@@ -1,3 +1,7 @@
+- Fix some devDeps
+
+## 1.1.4
+
 - Updated to use babel7 and easier polyfills
 
 ## 1.1.3

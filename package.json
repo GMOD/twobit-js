@@ -24,17 +24,9 @@
     "clean": "rimraf dist",
     "prebuild": "npm run docs && npm run clean",
     "build": "babel src -d dist",
-    "watch": "npm-watch",
-    "patch": "npm version patch && npm publish",
-    "minor": "npm version minor && npm publish",
-    "major": "npm version major && npm publish",
+    "version": "standard-changelog && git add CHANGELOG.md",
     "prepublishOnly": "npm run lint && npm test && npm run build",
     "postpublish": "git push origin master --follow-tags"
-  },
-  "watch": {
-    "test": "{src,test}/*.js",
-    "lint": "{src,test}/*.js",
-    "build": "src"
   },
   "jest": {
     "testEnvironment": "node"
@@ -64,11 +56,10 @@
     "eslint-config-prettier": "^4.1.0",
     "eslint-plugin-import": "^2.10.0",
     "eslint-plugin-prettier": "^3.0.1",
-    "istanbul": "^0.4.5",
     "jest-cli": "^24.7.0",
-    "npm-watch": "^0.5.0",
     "prettier": "^1.11.1",
-    "rimraf": "^2.6.2"
+    "rimraf": "^2.6.2",
+    "standard-changelog": "^2.0.7"
   },
   "publishConfig": {
     "access": "public"
