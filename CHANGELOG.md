@@ -1,3 +1,7 @@
+## [1.1.7](https://github.com/GMOD/twobit-js/compare/v1.1.6...v1.1.7) (2019-04-03)
+
+
+
 - Use core-js to polyfill Object.values instead of polyfill library
 
 ## [1.1.6](https://github.com/GMOD/twobit-js/compare/v1.1.5...v1.1.6) (2019-04-03)
