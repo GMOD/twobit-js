@@ -1,7 +1,10 @@
 # @gmod/twobit
 
 [![NPM version](https://img.shields.io/npm/v/@gmod/twobit.svg?style=flat-square)](https://npmjs.org/package/@gmod/twobit)
-[![Build Status](https://img.shields.io/travis/GMOD/twobit-js/master.svg?style=flat-square)](https://travis-ci.org/GMOD/twobit-js) [![Greenkeeper badge](https://badges.greenkeeper.io/GMOD/twobit-js.svg)](https://greenkeeper.io/) 
+[![Build Status](https://img.shields.io/travis/GMOD/twobit-js/master.svg?style=flat-square)](https://travis-ci.org/GMOD/twobit-js)
+[![Greenkeeper badge](https://badges.greenkeeper.io/GMOD/twobit-js.svg)](https://greenkeeper.io/)
+[![codecov](https://codecov.io/gh/GMOD/twobit-js/branch/master/graph/badge.svg)](https://codecov.io/gh/GMOD/twobit-js)
+
 
 Read .2bit sequence files using pure JavaScript, works in node or in the browser.
 
