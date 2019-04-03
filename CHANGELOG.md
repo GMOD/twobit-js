@@ -1,3 +1,7 @@
+## [1.1.6](https://github.com/GMOD/twobit-js/compare/v1.1.5...v1.1.6) (2019-04-03)
+
+
+
 - Change some settings so that babel runtimes do not collide
 
 ## [1.1.5](https://github.com/GMOD/twobit-js/compare/v1.1.4...v1.1.5) (2019-04-03)
