@@ -1,3 +1,7 @@
+## [1.1.9](https://github.com/GMOD/twobit-js/compare/v1.1.8...v1.1.9) (2019-05-25)
+
+
+
 ## [1.1.8](https://github.com/GMOD/twobit-js/compare/v1.1.6...v1.1.8) (2019-04-04)
 
 
