@@ -58,7 +58,7 @@
     "jest-cli": "^24.7.0",
     "prettier": "^1.17.0",
     "rimraf": "^2.6.2",
-    "standard-changelog": "^2.0.7"
+    "standard-changelog": "^1.0.0"
   },
   "publishConfig": {
     "access": "public"
