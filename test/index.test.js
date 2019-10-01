@@ -36,6 +36,11 @@ describe('.2bit data store', () => {
     expect(await t.getSequence('chr1', 0, 300)).toBe(fullSeq)
     expect(await t.getSequence('chr1', 0)).toBe(fullSeq)
     expect(await t.getSequence('chr1')).toBe(fullSeq)
+    await expect(t.getSequence('chr1', -5)).rejects.toThrow(
+      'regionStart cannot be less than 0',
+    )
+
+    expect(await t.getSequenceNames()).toEqual(['chr1'])
   })
 
   it('loads some data from T_ko.2bit', async () => {
