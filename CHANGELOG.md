@@ -1,3 +1,8 @@
+<a name="1.1.10"></a>
+## [1.1.10](https://github.com/GMOD/twobit-js/compare/v1.1.9...v1.1.10) (2019-10-06)
+
+
+
 - Small refactor of `filehandle.read()` to make it more robust
 
 ## [1.1.9](https://github.com/GMOD/twobit-js/compare/v1.1.8...v1.1.9) (2019-05-25)
