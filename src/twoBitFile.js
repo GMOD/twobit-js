@@ -37,7 +37,7 @@ class LocalFile {
 
   async read(buf, offset, length, position) {
     const fd = await this.fdPromise
-    await fs.read(fd, buf, offset, length, position)
+    return fs.read(fd, buf, offset, length, position)
   }
 }
 
@@ -62,14 +62,18 @@ class TwoBitFile {
   }
 
   async _detectEndianness() {
-    const buf = Buffer.allocUnsafe(8)
-    await this.filehandle.read(buf, 0, 8, 0)
-    if (buf.readInt32LE(0) === TWOBIT_MAGIC) {
+    const { buffer } = await this.filehandle.read(
+      Buffer.allocUnsafe(8),
+      0,
+      8,
+      0,
+    )
+    if (buffer.readInt32LE(0) === TWOBIT_MAGIC) {
       this.isBigEndian = false
-      this.version = buf.readInt32LE(4)
-    } else if (buf.readInt32BE(0) === TWOBIT_MAGIC) {
+      this.version = buffer.readInt32LE(4)
+    } else if (buffer.readInt32BE(0) === TWOBIT_MAGIC) {
       this.isBigEndian = true
-      this.version = buf.readInt32BE(4)
+      this.version = buffer.readInt32BE(4)
     } else {
       throw new Error('not a 2bit file')
     }
@@ -163,11 +167,14 @@ class TwoBitFile {
   async getHeader() {
     await this._detectEndianness()
 
-    const buf = Buffer.allocUnsafe(16)
-    await this.filehandle.read(buf, 0, 16, 0)
-
+    const { buffer } = await this.filehandle.read(
+      Buffer.allocUnsafe(16),
+      0,
+      16,
+      0,
+    )
     const headerParser = await this._getParser('header')
-    return headerParser.parse(buf).result
+    return headerParser.parse(buffer).result
   }
 
   // memoize
@@ -178,10 +185,14 @@ class TwoBitFile {
     const header = await this.getHeader()
     const maxIndexLength =
       8 + header.sequenceCount * (1 + 256 + (this.version === 1 ? 8 : 4))
-    const buf = Buffer.allocUnsafe(maxIndexLength)
-    await this.filehandle.read(buf, 0, maxIndexLength, 8)
+    const { buffer } = await this.filehandle.read(
+      Buffer.allocUnsafe(maxIndexLength),
+      0,
+      maxIndexLength,
+      8,
+    )
     const indexParser = await this._getParser('index')
-    const indexData = indexParser.parse(buf).result.index
+    const indexData = indexParser.parse(buffer).result.index
     const index = {}
     if (this.version === 1) {
       indexData.forEach(({ name, offsetBytes }) => {
@@ -266,10 +277,14 @@ class TwoBitFile {
   }
 
   async _parseItem(offset, length, parserName) {
-    const buf = Buffer.allocUnsafe(length)
-    await this.filehandle.read(buf, 0, length, offset)
+    const { buffer } = await this.filehandle.read(
+      Buffer.allocUnsafe(length),
+      0,
+      length,
+      offset,
+    )
     const parser = await this._getParser(parserName)
-    return parser.parse(buf).result
+    return parser.parse(buffer).result
   }
 
   /**
@@ -312,7 +327,7 @@ class TwoBitFile {
       Math.ceil((regionEnd - regionStart) / 4) + 1,
     )
     const baseBytesOffset = Math.floor(regionStart / 4)
-    await this.filehandle.read(
+    const { buffer } = await this.filehandle.read(
       baseBytes,
       0,
       baseBytes.length,
@@ -351,7 +366,7 @@ class TwoBitFile {
       } else {
         const bytePosition = Math.floor(genomicPosition / 4) - baseBytesOffset
         const subPosition = genomicPosition % 4
-        const byte = baseBytes[bytePosition]
+        const byte = buffer[bytePosition]
         sequenceBases += baseIsMasked
           ? maskedByteTo4Bases[byte][subPosition]
           : byteTo4Bases[byte][subPosition]
