@@ -1,3 +1,5 @@
+- Typescriptify codebase and add esm build
+
 <a name="1.1.10"></a>
 ## [1.1.10](https://github.com/GMOD/twobit-js/compare/v1.1.9...v1.1.10) (2019-10-06)
 
