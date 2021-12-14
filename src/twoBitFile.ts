@@ -1,6 +1,5 @@
 import Long from 'long'
-import LocalFile from './localFile'
-import { GenericFilehandle } from 'generic-filehandle'
+import { LocalFile, GenericFilehandle } from 'generic-filehandle'
 import { Parser } from '@gmod/binary-parser'
 
 const TWOBIT_MAGIC = 0x1a412743
@@ -61,12 +60,8 @@ export default class TwoBitFile {
   }
 
   async _detectEndianness() {
-    const { buffer } = await this.filehandle.read(
-      Buffer.allocUnsafe(8),
-      0,
-      8,
-      0,
-    )
+    const ret = await this.filehandle.read(Buffer.allocUnsafe(8), 0, 8, 0)
+    const { buffer } = ret
     if (buffer.readInt32LE(0) === TWOBIT_MAGIC) {
       this.isBigEndian = false
       this.version = buffer.readInt32LE(4)
