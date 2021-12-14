@@ -1,5 +1,6 @@
-const fs = require('fs')
-const { TwoBitFile } = require('../src')
+//@ts-nocheck
+import fs from 'fs'
+import { TwoBitFile } from '../src'
 
 let extended = xit
 try {
