@@ -1,3 +1,5 @@
+- Remove es6-promisify dependency
+
 <a name="1.1.11"></a>
 ## [1.1.11](https://github.com/GMOD/twobit-js/compare/v1.1.10...v1.1.11) (2021-12-14)
 
