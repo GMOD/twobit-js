@@ -30,7 +30,7 @@
     "build": "npm run build:esm && npm run build:es5",
     "version": "standard-changelog && git add CHANGELOG.md",
     "prepublishOnly": "npm run lint && npm test && npm run build",
-    "postpublish": "git push origin master --follow-tags"
+    "postversion": "git push --follow-tags"
   },
   "keywords": [
     "bionode",
