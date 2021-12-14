@@ -4,8 +4,9 @@ import { TwoBitFile } from '../src'
 
 let extended = xit
 try {
-  if (fs.existsSync(require.resolve(`./data/extended/wheat.2bit`)))
+  if (fs.existsSync(require.resolve(`./data/extended/wheat.2bit`))) {
     extended = it
+  }
 } catch (e) {
   // ignore
   console.log(

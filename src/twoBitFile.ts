@@ -8,7 +8,9 @@ function tinyMemoize(_class: any, methodName: string) {
   const method = _class.prototype[methodName]
   const memoAttrName = `_memo_${methodName}`
   _class.prototype[methodName] = function _tinyMemoized() {
-    if (!(memoAttrName in this)) this[memoAttrName] = method.call(this)
+    if (!(memoAttrName in this)) {
+      this[memoAttrName] = method.call(this)
+    }
     return this[memoAttrName]
   }
 }
@@ -16,7 +18,7 @@ function tinyMemoize(_class: any, methodName: string) {
 const twoBit = ['T', 'C', 'A', 'G']
 // byteTo4Bases is an array of byteValue -> 'ACTG'
 // the weird `...keys()` incantation generates an array of numbers 0 to 255
-let byteTo4Bases = [] as string[]
+const byteTo4Bases = [] as string[]
 for (let i = 0; i < 256; i++) {
   byteTo4Bases.push(
     twoBit[(i >> 6) & 3] +
@@ -47,15 +49,21 @@ export default class TwoBitFile {
     filehandle?: GenericFilehandle
     path?: string
   }) {
-    if (filehandle) this.filehandle = filehandle
-    else if (path) this.filehandle = new LocalFile(path)
-    else throw new Error('must supply path or filehandle')
+    if (filehandle) {
+      this.filehandle = filehandle
+    } else if (path) {
+      this.filehandle = new LocalFile(path)
+    } else {
+      throw new Error('must supply path or filehandle')
+    }
     this.isBigEndian = undefined
   }
 
   async _getParser(name: ParserName) {
     const parser = (await this._getParsers())[name]
-    if (!parser) throw new Error(`parser ${name} not found`)
+    if (!parser) {
+      throw new Error(`parser ${name} not found`)
+    }
     return parser
   }
 
@@ -192,10 +200,11 @@ export default class TwoBitFile {
       indexData.forEach(
         ({ name, offsetBytes }: { name: string; offsetBytes: number }) => {
           const long = Long.fromBytes(offsetBytes, true, !this.isBigEndian)
-          if (long.greaterThan(Number.MAX_SAFE_INTEGER))
+          if (long.greaterThan(Number.MAX_SAFE_INTEGER)) {
             throw new Error(
               'integer overflow. File offset greater than 2^53-1 encountered. This library can only handle offsets up to 2^53-1.',
             )
+          }
           index[name] = long.toNumber()
         },
       )
@@ -241,20 +250,26 @@ export default class TwoBitFile {
   async getSequenceSize(seqName: string) {
     const index = await this.getIndex()
     const offset = index[seqName]
-    if (!offset) return undefined
+    if (!offset) {
+      return undefined
+    }
     return this._getSequenceSize(offset)
   }
 
   async _getSequenceSize(offset: number) {
     // we have to parse the sequence record in 3 parts, because we have to buffer 3 fixed-length file reads
-    if (offset === undefined || offset < 0) throw new Error('invalid offset')
+    if (offset === undefined || offset < 0) {
+      throw new Error('invalid offset')
+    }
     const rec1 = await this._parseItem(offset, 8, 'record1')
     return rec1.dnaSize
   }
 
   async _getSequenceRecord(offset: number) {
     // we have to parse the sequence record in 3 parts, because we have to buffer 3 fixed-length file reads
-    if (offset === undefined || offset < 0) throw new Error('invalid offset')
+    if (offset === undefined || offset < 0) {
+      throw new Error('invalid offset')
+    }
     const rec1 = await this._parseItem(offset, 8, 'record1')
     const rec2DataLength = rec1.nBlockCount * 8 + 8
     const rec2 = await this._parseItem(offset + 4, rec2DataLength, 'record2')
@@ -339,8 +354,9 @@ export default class TwoBitFile {
       genomicPosition += 1
     ) {
       // check whether we are currently masked
-      while (maskBlocks.length && maskBlocks[0].end <= genomicPosition)
+      while (maskBlocks.length && maskBlocks[0].end <= genomicPosition) {
         maskBlocks.shift()
+      }
       const baseIsMasked =
         maskBlocks[0] &&
         maskBlocks[0].start <= genomicPosition &&
@@ -392,13 +408,19 @@ export default class TwoBitFile {
           endIndex = i
           break
         }
-      } else if (startIndex === undefined) startIndex = i // block does overlap the region, record this if it is the first
+      } else if (startIndex === undefined) {
+        startIndex = i
+      } // block does overlap the region, record this if it is the first
     }
 
-    if (startIndex === undefined) return []
+    if (startIndex === undefined) {
+      return []
+    }
 
     // now format some block objects to return
-    if (endIndex === undefined) endIndex = blockStarts.length
+    if (endIndex === undefined) {
+      endIndex = blockStarts.length
+    }
 
     const blocks = new Array(endIndex - startIndex)
     for (let blockNum = startIndex; blockNum < endIndex; blockNum += 1) {
