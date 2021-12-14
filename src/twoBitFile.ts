@@ -1,17 +1,16 @@
-const Long = require('long')
-const { Parser } = require('@gmod/binary-parser')
-
-const fs =
-  // eslint-disable-next-line camelcase
-  typeof __webpack_require__ !== 'function' ? require('fs-extra') : undefined
+import Long from 'long'
+import { LocalFile, GenericFilehandle } from 'generic-filehandle'
+import { Parser } from '@gmod/binary-parser'
 
 const TWOBIT_MAGIC = 0x1a412743
 
-function tinyMemoize(_class, methodName) {
+function tinyMemoize(_class: any, methodName: string) {
   const method = _class.prototype[methodName]
   const memoAttrName = `_memo_${methodName}`
   _class.prototype[methodName] = function _tinyMemoized() {
-    if (!(memoAttrName in this)) this[memoAttrName] = method.call(this)
+    if (!(memoAttrName in this)) {
+      this[memoAttrName] = method.call(this)
+    }
     return this[memoAttrName]
   }
 }
@@ -19,55 +18,58 @@ function tinyMemoize(_class, methodName) {
 const twoBit = ['T', 'C', 'A', 'G']
 // byteTo4Bases is an array of byteValue -> 'ACTG'
 // the weird `...keys()` incantation generates an array of numbers 0 to 255
-const byteTo4Bases = [...Array(256).keys()].map(
-  (x, i) =>
+const byteTo4Bases = [] as string[]
+for (let i = 0; i < 256; i++) {
+  byteTo4Bases.push(
     twoBit[(i >> 6) & 3] +
-    twoBit[(i >> 4) & 3] +
-    twoBit[(i >> 2) & 3] +
-    twoBit[i & 3],
-)
-const maskedByteTo4Bases = byteTo4Bases.map(bases => bases.toLowerCase())
-
-// LocalFile is pretty much just an implementation of the node 10+ fs.promises filehandle,
-// can switch to that when the API is stable
-class LocalFile {
-  constructor(path) {
-    this.fdPromise = fs.open(path, 'r')
-  }
-
-  async read(buf, offset, length, position) {
-    const fd = await this.fdPromise
-    return fs.read(fd, buf, offset, length, position)
-  }
+      twoBit[(i >> 4) & 3] +
+      twoBit[(i >> 2) & 3] +
+      twoBit[i & 3],
+  )
 }
 
-class TwoBitFile {
+type ParserName = 'header' | 'index' | 'record1' | 'record2' | 'record3'
+const maskedByteTo4Bases = byteTo4Bases.map(bases => bases.toLowerCase())
+
+export default class TwoBitFile {
+  private filehandle: GenericFilehandle
+  private isBigEndian?: boolean
+  private version?: number
+
   /**
    * @param {object} args
    * @param {string} [args.path] filesystem path for the .2bit file to open
    * @param {Filehandle} [args.filehandle] node fs.promises-like filehandle for the .2bit file.
    *  Only needs to support `filehandle.read(buffer, offset, length, position)`
    */
-  constructor({ filehandle, path, seqChunkSize }) {
-    if (filehandle) this.filehandle = filehandle
-    else if (path) this.filehandle = new LocalFile(path)
+  constructor({
+    filehandle,
+    path,
+  }: {
+    filehandle?: GenericFilehandle
+    path?: string
+  }) {
+    if (filehandle) {
+      this.filehandle = filehandle
+    } else if (path) {
+      this.filehandle = new LocalFile(path)
+    } else {
+      throw new Error('must supply path or filehandle')
+    }
     this.isBigEndian = undefined
-    this.seqChunkSize = seqChunkSize || 32000
   }
 
-  async _getParser(name) {
+  async _getParser(name: ParserName) {
     const parser = (await this._getParsers())[name]
-    if (!parser) throw new Error(`parser ${name} not found`)
+    if (!parser) {
+      throw new Error(`parser ${name} not found`)
+    }
     return parser
   }
 
   async _detectEndianness() {
-    const { buffer } = await this.filehandle.read(
-      Buffer.allocUnsafe(8),
-      0,
-      8,
-      0,
-    )
+    const ret = await this.filehandle.read(Buffer.allocUnsafe(8), 0, 8, 0)
+    const { buffer } = ret
     if (buffer.readInt32LE(0) === TWOBIT_MAGIC) {
       this.isBigEndian = false
       this.version = buffer.readInt32LE(4)
@@ -105,15 +107,15 @@ class TwoBitFile {
     const header = new Parser()
       .endianess(endianess)
       .int32('magic', {
-        assert: m => m === 0x1a412743,
+        assert: (m: number) => m === 0x1a412743,
       })
       .int32('version', {
         /* istanbul ignore next */
-        assert: v => v === 0 || v === 1,
+        assert: (v: number) => v === 0 || v === 1,
       })
       .uint32('sequenceCount', {
         /* istanbul ignore next */
-        assert: v => v >= 0,
+        assert: (v: number) => v >= 0,
       })
       .uint32('reserved')
 
@@ -193,20 +195,25 @@ class TwoBitFile {
     )
     const indexParser = await this._getParser('index')
     const indexData = indexParser.parse(buffer).result.index
-    const index = {}
+    const index = {} as { [key: string]: number }
     if (this.version === 1) {
-      indexData.forEach(({ name, offsetBytes }) => {
-        const long = Long.fromBytes(offsetBytes, true, !this.isBigEndian)
-        if (long.greaterThan(Number.MAX_SAFE_INTEGER))
-          throw new Error(
-            'integer overflow. File offset greater than 2^53-1 encountered. This library can only handle offsets up to 2^53-1.',
-          )
-        index[name] = long.toNumber()
-      })
+      indexData.forEach(
+        ({ name, offsetBytes }: { name: string; offsetBytes: number }) => {
+          const long = Long.fromBytes(offsetBytes, true, !this.isBigEndian)
+          if (long.greaterThan(Number.MAX_SAFE_INTEGER)) {
+            throw new Error(
+              'integer overflow. File offset greater than 2^53-1 encountered. This library can only handle offsets up to 2^53-1.',
+            )
+          }
+          index[name] = long.toNumber()
+        },
+      )
     } else {
-      indexData.forEach(({ name, offset }) => {
-        index[name] = offset
-      })
+      indexData.forEach(
+        ({ name, offset }: { name: string; offset: number }) => {
+          index[name] = offset
+        },
+      )
     }
     return index
   }
@@ -226,10 +233,10 @@ class TwoBitFile {
     const index = await this.getIndex()
     const seqNames = Object.keys(index)
     const sizePromises = Object.values(index).map(offset =>
-      this._getSequenceSize(offset),
+      this._getSequenceSize(offset as number),
     )
     const sizes = await Promise.all(sizePromises)
-    const returnObject = {}
+    const returnObject = {} as { [key: string]: number }
     for (let i = 0; i < seqNames.length; i += 1) {
       returnObject[seqNames[i]] = sizes[i]
     }
@@ -240,23 +247,29 @@ class TwoBitFile {
    * @param {string} seqName name of the sequence
    * @returns {Promise} for the sequence's length, or undefined if it is not in the file
    */
-  async getSequenceSize(seqName) {
+  async getSequenceSize(seqName: string) {
     const index = await this.getIndex()
     const offset = index[seqName]
-    if (!offset) return undefined
+    if (!offset) {
+      return undefined
+    }
     return this._getSequenceSize(offset)
   }
 
-  async _getSequenceSize(offset) {
+  async _getSequenceSize(offset: number) {
     // we have to parse the sequence record in 3 parts, because we have to buffer 3 fixed-length file reads
-    if (offset === undefined || offset < 0) throw new Error('invalid offset')
+    if (offset === undefined || offset < 0) {
+      throw new Error('invalid offset')
+    }
     const rec1 = await this._parseItem(offset, 8, 'record1')
     return rec1.dnaSize
   }
 
-  async _getSequenceRecord(offset) {
+  async _getSequenceRecord(offset: number) {
     // we have to parse the sequence record in 3 parts, because we have to buffer 3 fixed-length file reads
-    if (offset === undefined || offset < 0) throw new Error('invalid offset')
+    if (offset === undefined || offset < 0) {
+      throw new Error('invalid offset')
+    }
     const rec1 = await this._parseItem(offset, 8, 'record1')
     const rec2DataLength = rec1.nBlockCount * 8 + 8
     const rec2 = await this._parseItem(offset + 4, rec2DataLength, 'record2')
@@ -276,7 +289,7 @@ class TwoBitFile {
     return rec
   }
 
-  async _parseItem(offset, length, parserName) {
+  async _parseItem(offset: number, length: number, parserName: ParserName) {
     const { buffer } = await this.filehandle.read(
       Buffer.allocUnsafe(length),
       0,
@@ -293,7 +306,7 @@ class TwoBitFile {
    * @param {number} [regionEnd] optional 0-based half-open end of the sequence region to fetch. defaults to end of the sequence
    * @returns {Promise} for a string of sequence bases
    */
-  async getSequence(seqName, regionStart = 0, regionEnd) {
+  async getSequence(seqName: string, regionStart = 0, regionEnd: number) {
     const index = await this.getIndex()
     const offset = index[seqName]
     if (!offset) {
@@ -341,8 +354,9 @@ class TwoBitFile {
       genomicPosition += 1
     ) {
       // check whether we are currently masked
-      while (maskBlocks.length && maskBlocks[0].end <= genomicPosition)
+      while (maskBlocks.length && maskBlocks[0].end <= genomicPosition) {
         maskBlocks.shift()
+      }
       const baseIsMasked =
         maskBlocks[0] &&
         maskBlocks[0].start <= genomicPosition &&
@@ -376,7 +390,12 @@ class TwoBitFile {
     return sequenceBases
   }
 
-  _getOverlappingBlocks(regionStart, regionEnd, blockStarts, blockSizes) {
+  _getOverlappingBlocks(
+    regionStart: number,
+    regionEnd: number,
+    blockStarts: number[],
+    blockSizes: number[],
+  ) {
     // find the start and end indexes of the blocks that match
     let startIndex
     let endIndex
@@ -389,13 +408,19 @@ class TwoBitFile {
           endIndex = i
           break
         }
-      } else if (startIndex === undefined) startIndex = i // block does overlap the region, record this if it is the first
+      } else if (startIndex === undefined) {
+        startIndex = i
+      } // block does overlap the region, record this if it is the first
     }
 
-    if (startIndex === undefined) return []
+    if (startIndex === undefined) {
+      return []
+    }
 
     // now format some block objects to return
-    if (endIndex === undefined) endIndex = blockStarts.length
+    if (endIndex === undefined) {
+      endIndex = blockStarts.length
+    }
 
     const blocks = new Array(endIndex - startIndex)
     for (let blockNum = startIndex; blockNum < endIndex; blockNum += 1) {
@@ -412,5 +437,3 @@ class TwoBitFile {
 tinyMemoize(TwoBitFile, '_getParsers')
 tinyMemoize(TwoBitFile, 'getIndex')
 tinyMemoize(TwoBitFile, 'getHeader')
-
-module.exports = TwoBitFile
