@@ -1,3 +1,8 @@
+<a name="1.1.13"></a>
+## [1.1.13](https://github.com/GMOD/twobit-js/compare/v1.1.12...v1.1.13) (2022-03-30)
+
+
+
 - Publish src directory for better source maps
 
 <a name="1.1.12"></a>
