@@ -1,3 +1,7 @@
+## [1.1.14](https://github.com/GMOD/twobit-js/compare/v1.1.13...v1.1.14) (2022-07-18)
+
+
+
 - Update generic-filehandle 2->3
 
 <a name="1.1.13"></a>
