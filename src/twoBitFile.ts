@@ -227,7 +227,11 @@ export default class TwoBitFile {
   }
 
   /**
-   * @returns {Promise} for an object listing the lengths of all sequences like `{seqName: length, ...}`
+   * @returns {Promise} for an object listing the lengths of all sequences like
+   * `{seqName: length, ...}`. note: this is a relatively slow operation
+   * especially if there are many refseqs in the file, if you can get this
+   * information from a different file e.g. a chrom.sizes file, it will be much
+   * faster
    */
   async getSequenceSizes() {
     const index = await this.getIndex()

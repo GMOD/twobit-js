@@ -80,7 +80,11 @@ Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/
 
 #### getSequenceSizes
 
-Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)** for an object listing the lengths of all sequences like `{seqName: length, ...}`
+Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)** for an object listing the lengths of all sequences like
+`{seqName: length, ...}`. note: this is a relatively slow operation
+especially if there are many refseqs in the file, if you can get this
+information from a different file e.g. a chrom.sizes file, it will be much
+faster
 
 #### getSequenceSize
 
