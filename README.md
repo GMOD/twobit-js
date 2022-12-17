@@ -2,7 +2,7 @@
 
 [![NPM version](https://img.shields.io/npm/v/@gmod/twobit.svg?style=flat-square)](https://npmjs.org/package/@gmod/twobit)
 [![Coverage Status](https://img.shields.io/codecov/c/github/GMOD/twobit-js/master.svg?style=flat-square)](https://codecov.io/gh/GMOD/twobit-js/branch/master)
-[![Build Status](https://img.shields.io/github/workflow/status/GMOD/twobit-js/Push/master?logo=github\&style=flat-query)](https://github.com/GMOD/twobit-js/actions?query=branch%3Amaster+workflow%3APush+)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/GMOD/twobit-js/push.yml?branch=master)](https://github.com/GMOD/twobit-js/actions)
 
 Read .2bit sequence files using pure JavaScript, works in node or in the browser.
 
