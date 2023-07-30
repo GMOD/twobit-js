@@ -1,4 +1,3 @@
-import Long from 'long'
 import { LocalFile, GenericFilehandle } from 'generic-filehandle'
 import { Parser } from '@gmod/binary-parser'
 
@@ -97,9 +96,7 @@ export default class TwoBitFile {
       .uint8('nameLength')
       .string('name', { length: 'nameLength' })
     if (this.version === 1) {
-      indexEntryParser = indexEntryParser.buffer('offsetBytes', {
-        length: 8,
-      })
+      indexEntryParser = indexEntryParser.buffer('buf', { length: 8 })
     } else {
       indexEntryParser = indexEntryParser.uint32('offset')
     }
@@ -197,17 +194,9 @@ export default class TwoBitFile {
     const indexData = indexParser.parse(buffer).result.index
     const index = {} as { [key: string]: number }
     if (this.version === 1) {
-      indexData.forEach(
-        ({ name, offsetBytes }: { name: string; offsetBytes: number }) => {
-          const long = Long.fromBytes(offsetBytes, true, !this.isBigEndian)
-          if (long.greaterThan(Number.MAX_SAFE_INTEGER)) {
-            throw new Error(
-              'integer overflow. File offset greater than 2^53-1 encountered. This library can only handle offsets up to 2^53-1.',
-            )
-          }
-          index[name] = long.toNumber()
-        },
-      )
+      indexData.forEach(({ name, buf }: { name: string; buf: Buffer }) => {
+        index[name] = Number(buf.readBigUInt64LE())
+      })
     } else {
       indexData.forEach(
         ({ name, offset }: { name: string; offset: number }) => {
