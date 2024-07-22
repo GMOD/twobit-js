@@ -76,7 +76,7 @@ export default class TwoBitFile {
       this.isBigEndian = true
       this.version = buffer.readInt32BE(4)
     } else {
-      throw new Error('not a 2bit file')
+      throw Error('not a 2bit file')
     }
   }
 
@@ -100,18 +100,15 @@ export default class TwoBitFile {
     } else {
       indexEntryParser = indexEntryParser.uint32('offset')
     }
-    /* istanbul ignore next */
     const header = new Parser()
       .endianess(endianess)
       .int32('magic', {
         assert: (m: number) => m === 0x1a412743,
       })
       .int32('version', {
-        /* istanbul ignore next */
         assert: (v: number) => v === 0 || v === 1,
       })
       .uint32('sequenceCount', {
-        /* istanbul ignore next */
         assert: (v: number) => v >= 0,
       })
       .uint32('reserved')
