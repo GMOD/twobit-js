@@ -6,12 +6,12 @@ const TWOBIT_MAGIC = 0x1a412743
 
 function tinyMemoize(_class: any, methodName: string) {
   const method = _class.prototype[methodName]
-  const memoAttrName = `_memo_${methodName}`
+  const memoAttributeName = `_memo_${methodName}`
   _class.prototype[methodName] = function _tinyMemoized() {
-    if (!(memoAttrName in this)) {
-      this[memoAttrName] = method.call(this)
+    if (!(memoAttributeName in this)) {
+      this[memoAttributeName] = method.call(this)
     }
-    return this[memoAttrName]
+    return this[memoAttributeName]
   }
 }
 
@@ -19,12 +19,12 @@ const twoBit = ['T', 'C', 'A', 'G']
 // byteTo4Bases is an array of byteValue -> 'ACTG'
 // the weird `...keys()` incantation generates an array of numbers 0 to 255
 const byteTo4Bases = [] as string[]
-for (let i = 0; i < 256; i++) {
+for (let index = 0; index < 256; index++) {
   byteTo4Bases.push(
-    twoBit[(i >> 6) & 3] +
-      twoBit[(i >> 4) & 3] +
-      twoBit[(i >> 2) & 3] +
-      twoBit[i & 3],
+    twoBit[(index >> 6) & 3] +
+      twoBit[(index >> 4) & 3] +
+      twoBit[(index >> 2) & 3] +
+      twoBit[index & 3],
   )
 }
 
@@ -60,7 +60,8 @@ export default class TwoBitFile {
   }
 
   async _getParser(name: ParserName) {
-    const parser = (await this._getParsers())[name]
+    const parsers = await this._getParsers()
+    const parser = parsers[name]
     if (!parser) {
       throw new Error(`parser ${name} not found`)
     }
@@ -68,8 +69,13 @@ export default class TwoBitFile {
   }
 
   async _detectEndianness() {
-    const ret = await this.filehandle.read(Buffer.allocUnsafe(8), 0, 8, 0)
-    const { buffer } = ret
+    const returnValue = await this.filehandle.read(
+      Buffer.allocUnsafe(8),
+      0,
+      8,
+      0,
+    )
+    const { buffer } = returnValue
     if (buffer.readInt32LE(0) === TWOBIT_MAGIC) {
       this.isBigEndian = false
       this.version = buffer.readInt32LE(4)
@@ -96,13 +102,12 @@ export default class TwoBitFile {
       .endianess(endianess)
       .uint8('nameLength')
       .string('name', { length: 'nameLength' })
-    if (this.version === 1) {
-      indexEntryParser = indexEntryParser.buffer('offsetBytes', {
-        length: 8,
-      })
-    } else {
-      indexEntryParser = indexEntryParser.uint32('offset')
-    }
+    indexEntryParser =
+      this.version === 1
+        ? indexEntryParser.buffer('offsetBytes', {
+            length: 8,
+          })
+        : indexEntryParser.uint32('offset')
     /* istanbul ignore next */
     const header = new Parser()
       .endianess(endianess)
@@ -195,7 +200,7 @@ export default class TwoBitFile {
     )
     const indexParser = await this._getParser('index')
     const indexData = indexParser.parse(buffer).result.index
-    const index = {} as { [key: string]: number }
+    const index = {} as Record<string, number>
     if (this.version === 1) {
       indexData.forEach(
         ({ name, offsetBytes }: { name: string; offsetBytes: number }) => {
@@ -237,12 +242,12 @@ export default class TwoBitFile {
     const index = await this.getIndex()
     const seqNames = Object.keys(index)
     const sizePromises = Object.values(index).map(offset =>
-      this._getSequenceSize(offset as number),
+      this._getSequenceSize(offset),
     )
     const sizes = await Promise.all(sizePromises)
-    const returnObject = {} as { [key: string]: number }
-    for (let i = 0; i < seqNames.length; i += 1) {
-      returnObject[seqNames[i]] = sizes[i]
+    const returnObject = {} as Record<string, number>
+    for (const [index_, seqName] of seqNames.entries()) {
+      returnObject[seqName] = sizes[index_]
     }
     return returnObject
   }
@@ -310,7 +315,7 @@ export default class TwoBitFile {
    * @param {number} [regionEnd] optional 0-based half-open end of the sequence region to fetch. defaults to end of the sequence
    * @returns {Promise} for a string of sequence bases
    */
-  async getSequence(seqName: string, regionStart = 0, regionEnd: number) {
+  async getSequence(seqName: string, regionStart = 0, regionEnd = Infinity) {
     const index = await this.getIndex()
     const offset = index[seqName]
     if (!offset) {
@@ -324,7 +329,7 @@ export default class TwoBitFile {
     }
     // end defaults to the end of the sequence
     if (regionEnd === undefined || regionEnd > record.dnaSize) {
-      regionEnd = record.dnaSize
+      regionEnd = record.dnaSize as number
     }
 
     const nBlocks = this._getOverlappingBlocks(
@@ -358,7 +363,7 @@ export default class TwoBitFile {
       genomicPosition += 1
     ) {
       // check whether we are currently masked
-      while (maskBlocks.length && maskBlocks[0].end <= genomicPosition) {
+      while (maskBlocks.length > 0 && maskBlocks[0].end <= genomicPosition) {
         maskBlocks.shift()
       }
       const baseIsMasked =
@@ -401,19 +406,18 @@ export default class TwoBitFile {
     blockSizes: number[],
   ) {
     // find the start and end indexes of the blocks that match
-    let startIndex
-    let endIndex
-    for (let i = 0; i < blockStarts.length; i += 1) {
-      const blockStart = blockStarts[i]
-      const blockSize = blockSizes[i]
+    let startIndex: number | undefined
+    let endIndex: number | undefined
+    for (const [index, blockStart] of blockStarts.entries()) {
+      const blockSize = blockSizes[index]
       if (regionStart >= blockStart + blockSize || regionEnd <= blockStart) {
         // block does not overlap the region
         if (startIndex !== undefined) {
-          endIndex = i
+          endIndex = index
           break
         }
       } else if (startIndex === undefined) {
-        startIndex = i
+        startIndex = index
       } // block does overlap the region, record this if it is the first
     }
 
@@ -427,11 +431,15 @@ export default class TwoBitFile {
     }
 
     const blocks = new Array(endIndex - startIndex)
-    for (let blockNum = startIndex; blockNum < endIndex; blockNum += 1) {
-      blocks[blockNum - startIndex] = {
-        start: blockStarts[blockNum],
-        end: blockStarts[blockNum] + blockSizes[blockNum],
-        size: blockSizes[blockNum],
+    for (
+      let blockNumber = startIndex;
+      blockNumber < endIndex;
+      blockNumber += 1
+    ) {
+      blocks[blockNumber - startIndex] = {
+        start: blockStarts[blockNumber],
+        end: blockStarts[blockNumber] + blockSizes[blockNumber],
+        size: blockSizes[blockNumber],
       }
     }
     return blocks

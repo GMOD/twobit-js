@@ -1,2 +1,1 @@
-import TwoBitFile from './twoBitFile'
-export { TwoBitFile }
+export { default as TwoBitFile } from './twoBitFile'
