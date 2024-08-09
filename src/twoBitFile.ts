@@ -1,4 +1,5 @@
 import { LocalFile, GenericFilehandle } from 'generic-filehandle'
+import { Buffer } from 'buffer'
 
 const TWOBIT_MAGIC = 0x1a412743
 

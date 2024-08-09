@@ -42,6 +42,7 @@ export default [
       'no-underscore-dangle': 0,
       curly: 'error',
       'unicorn/no-useless-undefined': 0,
+      'unicorn/prefer-node-protocol': 0,
       'unicorn/filename-case': 0,
       'unicorn/numeric-separators-style': 0,
       'unicorn/number-literal-case': 0,
