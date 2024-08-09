@@ -1,4 +1,3 @@
-import Long from 'long'
 import { LocalFile, GenericFilehandle } from 'generic-filehandle'
 
 const TWOBIT_MAGIC = 0x1a412743
@@ -316,7 +315,11 @@ export default class TwoBitFile {
    * @param {number} [regionEnd] optional 0-based half-open end of the sequence region to fetch. defaults to end of the sequence
    * @returns {Promise} for a string of sequence bases
    */
-  async getSequence(seqName: string, regionStart = 0, regionEnd = Number.POSITIVE_INFINITY) {
+  async getSequence(
+    seqName: string,
+    regionStart = 0,
+    regionEnd = Number.POSITIVE_INFINITY,
+  ) {
     const index = await this.getIndex()
     const offset = index[seqName]
     if (!offset) {
