@@ -15,7 +15,6 @@ function tinyMemoize(_class: any, methodName: string) {
 
 const twoBit = ['T', 'C', 'A', 'G']
 // byteTo4Bases is an array of byteValue -> 'ACTG'
-// the weird `...keys()` incantation generates an array of numbers 0 to 255
 const byteTo4Bases = [] as string[]
 for (let index = 0; index < 256; index++) {
   byteTo4Bases.push(
@@ -26,12 +25,10 @@ for (let index = 0; index < 256; index++) {
   )
 }
 
-type ParserName = 'header' | 'index' | 'record1' | 'record2' | 'record3'
 const maskedByteTo4Bases = byteTo4Bases.map(bases => bases.toLowerCase())
 
 export default class TwoBitFile {
   private filehandle: GenericFilehandle
-  private isBigEndian?: boolean
   private version?: number
 
   /**
@@ -54,7 +51,6 @@ export default class TwoBitFile {
     } else {
       throw new Error('must supply path or filehandle')
     }
-    this.isBigEndian = undefined
   }
 
   async _detectEndianness() {
@@ -66,11 +62,9 @@ export default class TwoBitFile {
     )
     const { buffer } = returnValue
     if (buffer.readInt32LE(0) === TWOBIT_MAGIC) {
-      this.isBigEndian = false
       this.version = buffer.readInt32LE(4)
     } else if (buffer.readInt32BE(0) === TWOBIT_MAGIC) {
-      this.isBigEndian = true
-      this.version = buffer.readInt32BE(4)
+      throw new Error('big endian not supported')
     } else {
       throw new Error('not a 2bit file')
     }
@@ -164,10 +158,11 @@ export default class TwoBitFile {
 
   /**
    * @returns {Promise} for an object listing the lengths of all sequences like
-   * `{seqName: length, ...}`. note: this is a relatively slow operation
-   * especially if there are many refseqs in the file, if you can get this
-   * information from a different file e.g. a chrom.sizes file, it will be much
-   * faster
+   * `{seqName: length, ...}`.
+   *
+   * note: this is a relatively slow operation especially if there are many
+   * refseqs in the file, if you can get this information from a different file
+   * e.g. a chrom.sizes file, it will be much faster
    */
   async getSequenceSizes() {
     const index = await this.getIndex()
@@ -450,6 +445,5 @@ export default class TwoBitFile {
   }
 }
 
-tinyMemoize(TwoBitFile, '_getParsers')
 tinyMemoize(TwoBitFile, 'getIndex')
 tinyMemoize(TwoBitFile, 'getHeader')
