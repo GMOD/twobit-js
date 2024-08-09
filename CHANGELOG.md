@@ -1,3 +1,7 @@
+# [2.0.0](https://github.com/GMOD/twobit-js/compare/v1.1.14...v2.0.0) (2024-08-09)
+
+
+
 ## [1.1.14](https://github.com/GMOD/twobit-js/compare/v1.1.13...v1.1.14) (2022-07-18)
 
 
