@@ -81,10 +81,9 @@ Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/
 #### getSequenceSizes
 
 Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)** for an object listing the lengths of all sequences like
-`{seqName: length, ...}`. note: this is a relatively slow operation
-especially if there are many refseqs in the file, if you can get this
-information from a different file e.g. a chrom.sizes file, it will be much
-faster
+`{seqName: length, ...}`.note: this is a relatively slow operation especially if there are many
+refseqs in the file, if you can get this information from a different file
+e.g. a chrom.sizes file, it will be much faster
 
 #### getSequenceSize
 
@@ -100,7 +99,7 @@ Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/
 
 *   `seqName` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** name of the sequence you want
 *   `regionStart` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)?** optional 0-based half-open start of the sequence region to fetch. (optional, default `0`)
-*   `regionEnd` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)?** optional 0-based half-open end of the sequence region to fetch. defaults to end of the sequence
+*   `regionEnd` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)?** optional 0-based half-open end of the sequence region to fetch. defaults to end of the sequence (optional, default `Number.POSITIVE_INFINITY`)
 
 Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)** for a string of sequence bases
 
