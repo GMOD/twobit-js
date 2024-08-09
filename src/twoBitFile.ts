@@ -3,17 +3,6 @@ import { Buffer } from 'buffer'
 
 const TWOBIT_MAGIC = 0x1a412743
 
-function tinyMemoize(_class: any, methodName: string) {
-  const method = _class.prototype[methodName]
-  const memoAttributeName = `_memo_${methodName}`
-  _class.prototype[methodName] = function _tinyMemoized() {
-    if (!(memoAttributeName in this)) {
-      this[memoAttributeName] = method.call(this)
-    }
-    return this[memoAttributeName]
-  }
-}
-
 const twoBit = ['T', 'C', 'A', 'G']
 // byteTo4Bases is an array of byteValue -> 'ACTG'
 const byteTo4Bases = [] as string[]
@@ -31,6 +20,8 @@ const maskedByteTo4Bases = byteTo4Bases.map(bases => bases.toLowerCase())
 export default class TwoBitFile {
   private filehandle: GenericFilehandle
   private version?: number
+  private headerP: ReturnType<typeof this._getHeader> | undefined
+  private indexP: ReturnType<typeof this._getIndex> | undefined
 
   /**
    * @param {object} args
@@ -71,12 +62,17 @@ export default class TwoBitFile {
     }
   }
 
-  // memoize
-  /**
-   * @returns {Promise} for object with the file's header information, like
-   *  `{ magic: 0x1a412743, version: 0, sequenceCount: 42, reserved: 0 }`
-   */
-  async getHeader() {
+  getHeader() {
+    if (!this.headerP) {
+      this.headerP = this._getHeader().catch((error: unknown) => {
+        this.headerP = undefined
+        throw error
+      })
+    }
+    return this.headerP
+  }
+
+  async _getHeader() {
     await this._detectEndianness()
 
     const { buffer } = await this.filehandle.read(
@@ -101,14 +97,25 @@ export default class TwoBitFile {
     offset += 4
     const reserved = dataView.getUint32(offset, le)
 
-    return { version, magic, sequenceCount, reserved }
+    return {
+      version,
+      magic,
+      sequenceCount,
+      reserved,
+    }
   }
 
-  // memoize
-  /**
-   * @returns {Promise} for object with the file's index of offsets, like `{ seqName: fileOffset, ...}`
-   */
-  async getIndex() {
+  getIndex() {
+    if (!this.indexP) {
+      this.indexP = this._getIndex().catch((error: unknown) => {
+        this.indexP = undefined
+        throw error
+      })
+    }
+    return this.indexP
+  }
+
+  async _getIndex() {
     const header = await this.getHeader()
     const maxIndexLength =
       8 + header.sequenceCount * (1 + 256 + (this.version === 1 ? 8 : 4))
@@ -131,7 +138,9 @@ export default class TwoBitFile {
     for (let i = 0; i < sequenceCount; i++) {
       const nameLength = dataView.getUint8(offset)
       offset += 1
-      const name = buffer.subarray(offset, offset + nameLength).toString()
+      const name = buffer
+        .subarray(offset, offset + nameLength)
+        .toString() as string
       offset += nameLength
       if (header.version === 1) {
         const dataOffset = Number(dataView.getBigUint64(offset, le))
@@ -145,7 +154,7 @@ export default class TwoBitFile {
     }
 
     return Object.fromEntries(
-      indexData.map(({ name, offset }) => [name, offset]),
+      indexData.map(({ name, offset }) => [name, offset] as const),
     )
   }
 
@@ -328,7 +337,7 @@ export default class TwoBitFile {
       throw new TypeError('regionStart cannot be less than 0')
     }
     // end defaults to the end of the sequence
-    if (regionEnd === undefined || regionEnd > record.dnaSize) {
+    if (regionEnd > record.dnaSize) {
       regionEnd = record.dnaSize
     }
 
@@ -445,6 +454,3 @@ export default class TwoBitFile {
     return blocks
   }
 }
-
-tinyMemoize(TwoBitFile, 'getIndex')
-tinyMemoize(TwoBitFile, 'getHeader')

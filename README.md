@@ -46,8 +46,6 @@ const seqNames = await t.getSequenceNames()
 
 *   [constructor](#constructor)
     *   [Parameters](#parameters)
-*   [getHeader](#getheader)
-*   [getIndex](#getindex)
 *   [getSequenceNames](#getsequencenames)
 *   [getSequenceSizes](#getsequencesizes)
 *   [getSequenceSize](#getsequencesize)
@@ -64,15 +62,6 @@ const seqNames = await t.getSequenceNames()
     *   `args.filehandle` **Filehandle?** node fs.promises-like filehandle for the .2bit file.
         Only needs to support `filehandle.read(buffer, offset, length, position)`
     *   `args.path` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)?** filesystem path for the .2bit file to open
-
-#### getHeader
-
-Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)** for object with the file's header information, like
-`{ magic: 0x1a412743, version: 0, sequenceCount: 42, reserved: 0 }`
-
-#### getIndex
-
-Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)** for object with the file's index of offsets, like `{ seqName: fileOffset, ...}`
 
 #### getSequenceNames
 
