@@ -1,6 +1,5 @@
 import Long from 'long'
 import { LocalFile, GenericFilehandle } from 'generic-filehandle'
-import { Parser } from '@gmod/binary-parser'
 
 const TWOBIT_MAGIC = 0x1a412743
 
@@ -59,15 +58,6 @@ export default class TwoBitFile {
     this.isBigEndian = undefined
   }
 
-  async _getParser(name: ParserName) {
-    const parsers = await this._getParsers()
-    const parser = parsers[name]
-    if (!parser) {
-      throw new Error(`parser ${name} not found`)
-    }
-    return parser
-  }
-
   async _detectEndianness() {
     const returnValue = await this.filehandle.read(
       Buffer.allocUnsafe(8),
@@ -89,85 +79,6 @@ export default class TwoBitFile {
 
   // memoize
   /**
-   * @private
-   * detects the file's endianness and instantiates our binary parsers accordingly
-   */
-  async _getParsers() {
-    await this._detectEndianness()
-
-    const endianess = this.isBigEndian ? 'big' : 'little'
-    const lebe = this.isBigEndian ? 'be' : 'le'
-
-    let indexEntryParser = new Parser()
-      .endianess(endianess)
-      .uint8('nameLength')
-      .string('name', { length: 'nameLength' })
-    indexEntryParser =
-      this.version === 1
-        ? indexEntryParser.buffer('offsetBytes', {
-            length: 8,
-          })
-        : indexEntryParser.uint32('offset')
-    /* istanbul ignore next */
-    const header = new Parser()
-      .endianess(endianess)
-      .int32('magic', {
-        assert: (m: number) => m === 0x1a412743,
-      })
-      .int32('version', {
-        /* istanbul ignore next */
-        assert: (v: number) => v === 0 || v === 1,
-      })
-      .uint32('sequenceCount', {
-        /* istanbul ignore next */
-        assert: (v: number) => v >= 0,
-      })
-      .uint32('reserved')
-
-    return {
-      header,
-      index: new Parser()
-        .endianess(endianess)
-        .uint32('sequenceCount')
-        .uint32('reserved')
-        .array('index', {
-          length: 'sequenceCount',
-          type: indexEntryParser,
-        }),
-      record1: new Parser()
-        .endianess(endianess)
-        .uint32('dnaSize')
-        .uint32('nBlockCount'),
-      record2: new Parser()
-        .endianess(endianess)
-        .uint32('nBlockCount')
-        .array('nBlockStarts', {
-          length: 'nBlockCount',
-          type: `uint32${lebe}`,
-        })
-        .array('nBlockSizes', {
-          length: 'nBlockCount',
-          type: `uint32${lebe}`,
-        })
-        .uint32('maskBlockCount'),
-      record3: new Parser()
-        .endianess(endianess)
-        .uint32('maskBlockCount')
-        .array('maskBlockStarts', {
-          length: 'maskBlockCount',
-          type: `uint32${lebe}`,
-        })
-        .array('maskBlockSizes', {
-          length: 'maskBlockCount',
-          type: `uint32${lebe}`,
-        })
-        .int32('reserved'),
-      // .buffer('packedDna', { length: 'dnaSize' }),
-    }
-  }
-
-  // memoize
-  /**
    * @returns {Promise} for object with the file's header information, like
    *  `{ magic: 0x1a412743, version: 0, sequenceCount: 42, reserved: 0 }`
    */
@@ -180,8 +91,23 @@ export default class TwoBitFile {
       16,
       0,
     )
-    const headerParser = await this._getParser('header')
-    return headerParser.parse(buffer).result
+
+    const b = buffer
+    const le = true
+    const dataView = new DataView(b.buffer, b.byteOffset, b.length)
+    let offset = 0
+    const magic = dataView.getInt32(offset, le)
+    offset += 4
+    if (magic !== 0x1a412743) {
+      throw new Error(`Wrong magic number ${magic}`)
+    }
+    const version = dataView.getInt32(offset, le)
+    offset += 4
+    const sequenceCount = dataView.getUint32(offset, le)
+    offset += 4
+    const reserved = dataView.getUint32(offset, le)
+
+    return { version, magic, sequenceCount, reserved }
   }
 
   // memoize
@@ -198,29 +124,35 @@ export default class TwoBitFile {
       maxIndexLength,
       8,
     )
-    const indexParser = await this._getParser('index')
-    const indexData = indexParser.parse(buffer).result.index
-    const index = {} as Record<string, number>
-    if (this.version === 1) {
-      indexData.forEach(
-        ({ name, offsetBytes }: { name: string; offsetBytes: number }) => {
-          const long = Long.fromBytes(offsetBytes, true, !this.isBigEndian)
-          if (long.greaterThan(Number.MAX_SAFE_INTEGER)) {
-            throw new Error(
-              'integer overflow. File offset greater than 2^53-1 encountered. This library can only handle offsets up to 2^53-1.',
-            )
-          }
-          index[name] = long.toNumber()
-        },
-      )
-    } else {
-      indexData.forEach(
-        ({ name, offset }: { name: string; offset: number }) => {
-          index[name] = offset
-        },
-      )
+
+    const le = true
+    const b = buffer
+    const dataView = new DataView(b.buffer, b.byteOffset, b.length)
+    let offset = 0
+    const sequenceCount = dataView.getUint32(offset, le)
+    offset += 4
+    // const reserved = dataView.getUint32(offset, le)
+    offset += 4
+    const indexData = []
+    for (let i = 0; i < sequenceCount; i++) {
+      const nameLength = dataView.getUint8(offset)
+      offset += 1
+      const name = buffer.subarray(offset, offset + nameLength).toString()
+      offset += nameLength
+      if (header.version === 1) {
+        const dataOffset = Number(dataView.getBigUint64(offset, le))
+        offset += 8
+        indexData.push({ offset: dataOffset, name })
+      } else {
+        const dataOffset = dataView.getUint32(offset, le)
+        offset += 4
+        indexData.push({ offset: dataOffset, name })
+      }
     }
-    return index
+
+    return Object.fromEntries(
+      indexData.map(({ name, offset }) => [name, offset]),
+    )
   }
 
   /**
@@ -266,47 +198,116 @@ export default class TwoBitFile {
   }
 
   async _getSequenceSize(offset: number) {
-    // we have to parse the sequence record in 3 parts, because we have to buffer 3 fixed-length file reads
-    if (offset === undefined || offset < 0) {
-      throw new Error('invalid offset')
+    return this._record1(offset).then(f => f.dnaSize)
+  }
+
+  async _record1(offset2: number, len = 8) {
+    const { buffer } = await this.filehandle.read(
+      Buffer.allocUnsafe(len),
+      0,
+      len,
+      offset2,
+    )
+    const b = buffer
+    const le = true
+    let offset = 0
+    const dataView = new DataView(b.buffer, b.byteOffset, b.length)
+
+    const dnaSize = dataView.getUint32(offset, le)
+    offset += 4
+    const nBlockCount = dataView.getUint32(offset, le)
+    offset += 4
+    return { dnaSize, nBlockCount }
+  }
+
+  async _record2(offset2: number, len: number) {
+    const { buffer } = await this.filehandle.read(
+      Buffer.allocUnsafe(len),
+      0,
+      len,
+      offset2,
+    )
+    const b = buffer
+    const le = true
+    let offset = 0
+    const dataView = new DataView(b.buffer, b.byteOffset, b.length)
+
+    const nBlockCount = dataView.getUint32(offset, le)
+    offset += 4
+    const nBlockStarts = [] as number[]
+    for (let i = 0; i < nBlockCount; i++) {
+      const elt = dataView.getUint32(offset, le)
+      offset += 4
+      nBlockStarts.push(elt)
     }
-    const rec1 = await this._parseItem(offset, 8, 'record1')
-    return rec1.dnaSize
+    const nBlockSizes = [] as number[]
+    for (let i = 0; i < nBlockCount; i++) {
+      const elt = dataView.getUint32(offset, le)
+      offset += 4
+      nBlockSizes.push(elt)
+    }
+    const maskBlockCount = dataView.getUint32(offset, le)
+    return {
+      maskBlockCount,
+      nBlockSizes,
+      nBlockStarts,
+    }
+  }
+  async _record3(offset2: number, len: number) {
+    const { buffer } = await this.filehandle.read(
+      Buffer.allocUnsafe(len),
+      0,
+      len,
+      offset2,
+    )
+    const b = buffer
+    const le = true
+    let offset = 0
+    const dataView = new DataView(b.buffer, b.byteOffset, b.length)
+
+    const maskBlockCount = dataView.getUint32(offset, le)
+    offset += 4
+    const maskBlockStarts = [] as number[]
+    for (let i = 0; i < maskBlockCount; i++) {
+      const elt = dataView.getUint32(offset, le)
+      offset += 4
+      maskBlockStarts.push(elt)
+    }
+    const maskBlockSizes = [] as number[]
+    for (let i = 0; i < maskBlockCount; i++) {
+      const elt = dataView.getUint32(offset, le)
+      offset += 4
+      maskBlockSizes.push(elt)
+    }
+    const reserved = dataView.getInt32(offset, le)
+    return {
+      maskBlockCount,
+      maskBlockSizes,
+      maskBlockStarts,
+      reserved,
+    }
   }
 
   async _getSequenceRecord(offset: number) {
-    // we have to parse the sequence record in 3 parts, because we have to buffer 3 fixed-length file reads
-    if (offset === undefined || offset < 0) {
-      throw new Error('invalid offset')
-    }
-    const rec1 = await this._parseItem(offset, 8, 'record1')
-    const rec2DataLength = rec1.nBlockCount * 8 + 8
-    const rec2 = await this._parseItem(offset + 4, rec2DataLength, 'record2')
-    const rec3DataLength = rec2.maskBlockCount * 8 + 8
-    const rec3 = await this._parseItem(
-      offset + 4 + rec2DataLength - 4,
-      rec3DataLength,
-      'record3',
-    )
+    const rec1 = await this._record1(offset)
+    const rec2DataLen = rec1.nBlockCount * 8 + 8
+    const rec2 = await this._record2(offset + 4, rec2DataLen)
+    const rec3DataLen = rec2.maskBlockCount * 8 + 8
+    const rec3 = await this._record3(offset + 4 + rec2DataLen - 4, rec3DataLen)
 
     const rec = {
       dnaSize: rec1.dnaSize,
-      nBlocks: { starts: rec2.nBlockStarts, sizes: rec2.nBlockSizes },
-      maskBlocks: { starts: rec3.maskBlockStarts, sizes: rec3.maskBlockSizes },
-      dnaPosition: offset + 4 + rec2DataLength - 4 + rec3DataLength,
+      nBlocks: {
+        starts: rec2.nBlockStarts,
+        sizes: rec2.nBlockSizes,
+      },
+      maskBlocks: {
+        starts: rec3.maskBlockStarts,
+        sizes: rec3.maskBlockSizes,
+      },
+      dnaPosition: offset + 4 + rec2DataLen - 4 + rec3DataLen,
     }
     return rec
-  }
-
-  async _parseItem(offset: number, length: number, parserName: ParserName) {
-    const { buffer } = await this.filehandle.read(
-      Buffer.allocUnsafe(length),
-      0,
-      length,
-      offset,
-    )
-    const parser = await this._getParser(parserName)
-    return parser.parse(buffer).result
   }
 
   /**
@@ -315,7 +316,7 @@ export default class TwoBitFile {
    * @param {number} [regionEnd] optional 0-based half-open end of the sequence region to fetch. defaults to end of the sequence
    * @returns {Promise} for a string of sequence bases
    */
-  async getSequence(seqName: string, regionStart = 0, regionEnd = Infinity) {
+  async getSequence(seqName: string, regionStart = 0, regionEnd = Number.POSITIVE_INFINITY) {
     const index = await this.getIndex()
     const offset = index[seqName]
     if (!offset) {
@@ -329,7 +330,7 @@ export default class TwoBitFile {
     }
     // end defaults to the end of the sequence
     if (regionEnd === undefined || regionEnd > record.dnaSize) {
-      regionEnd = record.dnaSize as number
+      regionEnd = record.dnaSize
     }
 
     const nBlocks = this._getOverlappingBlocks(

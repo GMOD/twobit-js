@@ -47,6 +47,7 @@ export default [
       'unicorn/number-literal-case': 0,
       'unicorn/no-new-array': 0,
       'unicorn/no-array-for-each': 0,
+      'unicorn/prevent-abbreviations': 0,
       'unicorn/prefer-spread': 0,
       'unicorn/prefer-string-replace-all': 0,
       '@typescript-eslint/no-explicit-any': 0,
