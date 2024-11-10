@@ -1,6 +1,6 @@
 {
   "name": "@gmod/twobit",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "description": "Read .2bit files in node or webpack",
   "license": "MIT",
   "main": "dist/index.js",
