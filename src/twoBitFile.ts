@@ -1,5 +1,4 @@
-import { LocalFile, GenericFilehandle } from 'generic-filehandle'
-import { Buffer } from 'buffer'
+import { LocalFile, GenericFilehandle } from 'generic-filehandle2'
 
 const TWOBIT_MAGIC = 0x1a412743
 
@@ -9,9 +8,9 @@ const byteTo4Bases = [] as string[]
 for (let index = 0; index < 256; index++) {
   byteTo4Bases.push(
     twoBit[(index >> 6) & 3] +
-    twoBit[(index >> 4) & 3] +
-    twoBit[(index >> 2) & 3] +
-    twoBit[index & 3],
+      twoBit[(index >> 4) & 3] +
+      twoBit[(index >> 2) & 3] +
+      twoBit[index & 3],
   )
 }
 
@@ -46,17 +45,11 @@ export default class TwoBitFile {
   }
 
   async _detectEndianness() {
-    const returnValue = await this.filehandle.read(
-      Buffer.allocUnsafe(8),
-      0,
-      8,
-      0,
-    )
-    const { buffer } = returnValue
-    if (buffer.readInt32LE(0) === TWOBIT_MAGIC) {
-      this.version = buffer.readInt32LE(4)
-    } else if (buffer.readInt32BE(0) === TWOBIT_MAGIC) {
-      throw new Error('big endian not supported')
+    const buffer = await this.filehandle.read(8, 0)
+    const dataView = new DataView(buffer.buffer)
+    const magic = dataView.getInt32(0, true)
+    if (magic === TWOBIT_MAGIC) {
+      this.version = dataView.getInt32(0, true)
     } else {
       throw new Error('not a 2bit file')
     }
@@ -75,14 +68,7 @@ export default class TwoBitFile {
   async _getHeader() {
     await this._detectEndianness()
 
-    const { buffer } = await this.filehandle.read(
-      Buffer.allocUnsafe(16),
-      0,
-      16,
-      0,
-    )
-
-    const b = buffer
+    const b = await this.filehandle.read(16, 0)
     const le = true
     const dataView = new DataView(b.buffer, b.byteOffset, b.length)
     let offset = 0
@@ -119,15 +105,9 @@ export default class TwoBitFile {
     const header = await this.getHeader()
     const maxIndexLength =
       8 + header.sequenceCount * (1 + 256 + (this.version === 1 ? 8 : 4))
-    const { buffer } = await this.filehandle.read(
-      Buffer.allocUnsafe(maxIndexLength),
-      0,
-      maxIndexLength,
-      8,
-    )
+    const b = await this.filehandle.read(maxIndexLength, 8)
 
     const le = true
-    const b = buffer
     const dataView = new DataView(b.buffer, b.byteOffset, b.length)
     let offset = 0
     const sequenceCount = dataView.getUint32(offset, le)
@@ -135,12 +115,11 @@ export default class TwoBitFile {
     // const reserved = dataView.getUint32(offset, le)
     offset += 4
     const indexData = []
+    const decoder = new TextDecoder('utf8')
     for (let i = 0; i < sequenceCount; i++) {
       const nameLength = dataView.getUint8(offset)
       offset += 1
-      const name = buffer
-        .subarray(offset, offset + nameLength)
-        .toString() as string
+      const name = decoder.decode(b.subarray(offset, offset + nameLength))
       offset += nameLength
       if (header.version === 1) {
         const dataOffset = Number(dataView.getBigUint64(offset, le))
@@ -159,7 +138,7 @@ export default class TwoBitFile {
   }
 
   /**
-   * @returns {Promise} for an array of string sequence names that are found in the file
+   * @returns for an array of string sequence names that are found in the file
    */
   async getSequenceNames() {
     const index = await this.getIndex()
@@ -167,8 +146,8 @@ export default class TwoBitFile {
   }
 
   /**
-   * @returns {Promise} for an object listing the lengths of all sequences like
-   * `{seqName: length, ...}`.
+   * @returns object listing the lengths of all sequences like `{seqName:
+   * length, ...}`.
    *
    * note: this is a relatively slow operation especially if there are many
    * refseqs in the file, if you can get this information from a different file
@@ -177,9 +156,9 @@ export default class TwoBitFile {
   async getSequenceSizes() {
     const index = await this.getIndex()
     const seqNames = Object.keys(index)
-    const sizes = await Promise.all(Object.values(index).map(offset =>
-      this._getSequenceSize(offset),
-    ))
+    const sizes = await Promise.all(
+      Object.values(index).map(offset => this._getSequenceSize(offset)),
+    )
     const returnObject = {} as Record<string, number>
     for (const [index_, seqName] of seqNames.entries()) {
       returnObject[seqName] = sizes[index_]
@@ -188,16 +167,14 @@ export default class TwoBitFile {
   }
 
   /**
-   * @param {string} seqName name of the sequence
-   * @returns {Promise} for the sequence's length, or undefined if it is not in the file
+   * @param seqName name of the sequence
+   *
+   * @returns sequence length, or undefined if it is not in the file
    */
   async getSequenceSize(seqName: string) {
     const index = await this.getIndex()
     const offset = index[seqName]
-    if (!offset) {
-      return undefined
-    }
-    return this._getSequenceSize(offset)
+    return offset ? this._getSequenceSize(offset) : undefined
   }
 
   async _getSequenceSize(offset: number) {
@@ -205,13 +182,7 @@ export default class TwoBitFile {
   }
 
   async _record1(offset2: number, len = 8) {
-    const { buffer } = await this.filehandle.read(
-      Buffer.allocUnsafe(len),
-      0,
-      len,
-      offset2,
-    )
-    const b = buffer
+    const b = await this.filehandle.read(len, offset2)
     const le = true
     let offset = 0
     const dataView = new DataView(b.buffer, b.byteOffset, b.length)
@@ -224,13 +195,7 @@ export default class TwoBitFile {
   }
 
   async _record2(offset2: number, len: number) {
-    const { buffer } = await this.filehandle.read(
-      Buffer.allocUnsafe(len),
-      0,
-      len,
-      offset2,
-    )
-    const b = buffer
+    const b = await this.filehandle.read(len, offset2)
     const le = true
     let offset = 0
     const dataView = new DataView(b.buffer, b.byteOffset, b.length)
@@ -257,13 +222,7 @@ export default class TwoBitFile {
     }
   }
   async _record3(offset2: number, len: number) {
-    const { buffer } = await this.filehandle.read(
-      Buffer.allocUnsafe(len),
-      0,
-      len,
-      offset2,
-    )
-    const b = buffer
+    const b = await this.filehandle.read(len, offset2)
     const le = true
     let offset = 0
     const dataView = new DataView(b.buffer, b.byteOffset, b.length)
@@ -314,10 +273,15 @@ export default class TwoBitFile {
   }
 
   /**
-   * @param {string} seqName name of the sequence you want
-   * @param {number} [regionStart] optional 0-based half-open start of the sequence region to fetch.
-   * @param {number} [regionEnd] optional 0-based half-open end of the sequence region to fetch. defaults to end of the sequence
-   * @returns {Promise} for a string of sequence bases
+   * @param seqName name of the sequence you want
+   *
+   * @param [regionStart] optional 0-based half-open start of the sequence
+   * region to fetch.
+   *
+   * @param [regionEnd] optional 0-based half-open end of the sequence region
+   * to fetch. defaults to end of the sequence
+   *
+   * @returns for a string of sequence bases
    */
   async getSequence(
     seqName: string,
@@ -353,14 +317,10 @@ export default class TwoBitFile {
       record.maskBlocks.sizes,
     )
 
-    const baseBytes = Buffer.allocUnsafe(
-      Math.ceil((regionEnd - regionStart) / 4) + 1,
-    )
+    const baseBytesLen = Math.ceil((regionEnd - regionStart) / 4) + 1
     const baseBytesOffset = Math.floor(regionStart / 4)
-    const { buffer } = await this.filehandle.read(
-      baseBytes,
-      0,
-      baseBytes.length,
+    const buffer = await this.filehandle.read(
+      baseBytesLen,
       record.dnaPosition + baseBytesOffset,
     )
 

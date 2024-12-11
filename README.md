@@ -65,12 +65,12 @@ const seqNames = await t.getSequenceNames()
 
 #### getSequenceNames
 
-Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)** for an array of string sequence names that are found in the file
+Returns **any** for an array of string sequence names that are found in the file
 
 #### getSequenceSizes
 
-Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)** for an object listing the lengths of all sequences like
-`{seqName: length, ...}`.note: this is a relatively slow operation especially if there are many
+Returns **any** object listing the lengths of all sequences like `{seqName:
+length, ...}`.note: this is a relatively slow operation especially if there are many
 refseqs in the file, if you can get this information from a different file
 e.g. a chrom.sizes file, it will be much faster
 
@@ -80,17 +80,19 @@ e.g. a chrom.sizes file, it will be much faster
 
 *   `seqName` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** name of the sequence
 
-Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)** for the sequence's length, or undefined if it is not in the file
+Returns **any** sequence length, or undefined if it is not in the file
 
 #### getSequence
 
 ##### Parameters
 
 *   `seqName` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** name of the sequence you want
-*   `regionStart` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)?** optional 0-based half-open start of the sequence region to fetch. (optional, default `0`)
-*   `regionEnd` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)?** optional 0-based half-open end of the sequence region to fetch. defaults to end of the sequence (optional, default `Number.POSITIVE_INFINITY`)
+*   `regionStart`  optional 0-based half-open start of the sequence
+    region to fetch. (optional, default `0`)
+*   `regionEnd`  optional 0-based half-open end of the sequence region
+    to fetch. defaults to end of the sequence (optional, default `Number.POSITIVE_INFINITY`)
 
-Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)** for a string of sequence bases
+Returns **any** for a string of sequence bases
 
 ## Academic Use
 
