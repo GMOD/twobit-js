@@ -9,9 +9,9 @@ const byteTo4Bases = [] as string[]
 for (let index = 0; index < 256; index++) {
   byteTo4Bases.push(
     twoBit[(index >> 6) & 3] +
-      twoBit[(index >> 4) & 3] +
-      twoBit[(index >> 2) & 3] +
-      twoBit[index & 3],
+    twoBit[(index >> 4) & 3] +
+    twoBit[(index >> 2) & 3] +
+    twoBit[index & 3],
   )
 }
 
@@ -177,10 +177,9 @@ export default class TwoBitFile {
   async getSequenceSizes() {
     const index = await this.getIndex()
     const seqNames = Object.keys(index)
-    const sizePromises = Object.values(index).map(offset =>
+    const sizes = await Promise.all(Object.values(index).map(offset =>
       this._getSequenceSize(offset),
-    )
-    const sizes = await Promise.all(sizePromises)
+    ))
     const returnObject = {} as Record<string, number>
     for (const [index_, seqName] of seqNames.entries()) {
       returnObject[seqName] = sizes[index_]
