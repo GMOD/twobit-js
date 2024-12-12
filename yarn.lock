@@ -1557,10 +1557,10 @@ function-bind@^1.1.2:
   resolved "https://registry.yarnpkg.com/function-bind/-/function-bind-1.1.2.tgz#2c02d864d97f3ea6c8830c464cbd11ab6eab7a1c"
   integrity sha512-7XHNxH7qX9xG5mIwxkhumTox/MIRNcOgDrxWsMt2pAr23WHp6MrRlN7FBSFpCpr+oVO0F744iUgR82nJMfG2SA==
 
-generic-filehandle2@^0.0.1:
-  version "0.0.1"
-  resolved "https://registry.yarnpkg.com/generic-filehandle2/-/generic-filehandle2-0.0.1.tgz#7f26ee54a939ed588d6bdb3a453bb2255ccd2be9"
-  integrity sha512-cySnWoVmNUSkRztAwlghNVAYXUh+VVy/fxn8tT3jZIo8UQEHkYL7ueSUseBZrwqBCq9n06Wp/F4xv2q2/SwYCQ==
+generic-filehandle2@^1.0.0:
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/generic-filehandle2/-/generic-filehandle2-1.0.0.tgz#d7a216072467793e1e48c925f97162eab1b82efc"
+  integrity sha512-jXfyNk1zhsR0Xf2sLm4vgeYSP1q1XbeSVG0TRSnOCKLb2CojPNJyy57nKi6QWmt83yGSHZGay8qIn7YWyl2V5w==
 
 gensync@^1.0.0-beta.2:
   version "1.0.0-beta.2"
