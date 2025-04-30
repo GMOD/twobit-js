@@ -44,24 +44,24 @@ const seqNames = await t.getSequenceNames()
 
 ##### Table of Contents
 
-*   [constructor](#constructor)
-    *   [Parameters](#parameters)
-*   [getSequenceNames](#getsequencenames)
-*   [getSequenceSizes](#getsequencesizes)
-*   [getSequenceSize](#getsequencesize)
-    *   [Parameters](#parameters-1)
-*   [getSequence](#getsequence)
-    *   [Parameters](#parameters-2)
+- [constructor](#constructor)
+  - [Parameters](#parameters)
+- [getSequenceNames](#getsequencenames)
+- [getSequenceSizes](#getsequencesizes)
+- [getSequenceSize](#getsequencesize)
+  - [Parameters](#parameters-1)
+- [getSequence](#getsequence)
+  - [Parameters](#parameters-2)
 
 #### constructor
 
 ##### Parameters
 
-*   `args` **[object](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object)**&#x20;
+- `args` **[object](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object)**&#x20;
 
-    *   `args.filehandle` **Filehandle?** node fs.promises-like filehandle for the .2bit file.
-        Only needs to support `filehandle.read(buffer, offset, length, position)`
-    *   `args.path` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)?** filesystem path for the .2bit file to open
+  - `args.filehandle` **Filehandle?** node fs.promises-like filehandle for the .2bit file.
+    Only needs to support `filehandle.read(buffer, offset, length, position)`
+  - `args.path` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)?** filesystem path for the .2bit file to open
 
 #### getSequenceNames
 
@@ -78,7 +78,7 @@ e.g. a chrom.sizes file, it will be much faster
 
 ##### Parameters
 
-*   `seqName` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** name of the sequence
+- `seqName` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** name of the sequence
 
 Returns **any** sequence length, or undefined if it is not in the file
 
@@ -86,11 +86,11 @@ Returns **any** sequence length, or undefined if it is not in the file
 
 ##### Parameters
 
-*   `seqName` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** name of the sequence you want
-*   `regionStart`  optional 0-based half-open start of the sequence
-    region to fetch. (optional, default `0`)
-*   `regionEnd`  optional 0-based half-open end of the sequence region
-    to fetch. defaults to end of the sequence (optional, default `Number.POSITIVE_INFINITY`)
+- `seqName` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** name of the sequence you want
+- `regionStart` optional 0-based half-open start of the sequence
+  region to fetch. (optional, default `0`)
+- `regionEnd` optional 0-based half-open end of the sequence region
+  to fetch. defaults to end of the sequence (optional, default `Number.POSITIVE_INFINITY`)
 
 Returns **any** for a string of sequence bases
 
