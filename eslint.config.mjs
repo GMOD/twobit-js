@@ -1,5 +1,6 @@
 import eslint from '@eslint/js'
 import eslintPluginUnicorn from 'eslint-plugin-unicorn'
+import importPlugin from 'eslint-plugin-import'
 import tseslint from 'typescript-eslint'
 
 export default tseslint.config(
@@ -25,7 +26,8 @@ export default tseslint.config(
   ...tseslint.configs.recommended,
   ...tseslint.configs.stylisticTypeChecked,
   ...tseslint.configs.strictTypeChecked,
-  eslintPluginUnicorn.configs['flat/recommended'],
+  eslintPluginUnicorn.configs.recommended,
+  importPlugin.flatConfigs.recommended,
   {
     rules: {
       'no-underscore-dangle': 0,
@@ -49,6 +51,24 @@ export default tseslint.config(
       '@typescript-eslint/explicit-module-boundary-types': 0,
       '@typescript-eslint/ban-ts-comment': 0,
       '@typescript-eslint/restrict-template-expressions': 0,
+
+      'import/no-unresolved': 'off',
+      'import/order': [
+        'error',
+        {
+          named: true,
+          'newlines-between': 'always',
+          alphabetize: {
+            order: 'asc',
+          },
+          groups: [
+            'builtin',
+            ['external', 'internal'],
+            ['parent', 'sibling', 'index', 'object'],
+            'type',
+          ],
+        },
+      ],
     },
   },
 )

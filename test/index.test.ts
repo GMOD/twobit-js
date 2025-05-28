@@ -1,4 +1,5 @@
 import { expect, test } from 'vitest'
+
 import { TwoBitFile } from '../src'
 
 test('loads some small bits of data from foo.2bit', async () => {

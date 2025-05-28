@@ -58,12 +58,10 @@ export default class TwoBitFile {
   }
 
   getHeader() {
-    if (!this.headerP) {
-      this.headerP = this._getHeader().catch((error: unknown) => {
-        this.headerP = undefined
-        throw error
-      })
-    }
+    this.headerP ??= this._getHeader().catch((error: unknown) => {
+      this.headerP = undefined
+      throw error
+    })
     return this.headerP
   }
 
@@ -94,12 +92,10 @@ export default class TwoBitFile {
   }
 
   getIndex() {
-    if (!this.indexP) {
-      this.indexP = this._getIndex().catch((error: unknown) => {
-        this.indexP = undefined
-        throw error
-      })
-    }
+    this.indexP ??= this._getIndex().catch((error: unknown) => {
+      this.indexP = undefined
+      throw error
+    })
     return this.indexP
   }
 
@@ -386,7 +382,9 @@ export default class TwoBitFile {
           endIndex = index
           break
         }
-      } else if (startIndex === undefined) {
+      }
+      // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+      else if (startIndex === undefined) {
         startIndex = index
       } // block does overlap the region, record this if it is the first
     }
@@ -396,9 +394,7 @@ export default class TwoBitFile {
     }
 
     // now format some block objects to return
-    if (endIndex === undefined) {
-      endIndex = blockStarts.length
-    }
+    endIndex ??= blockStarts.length
 
     const blocks = new Array(endIndex - startIndex)
     for (
