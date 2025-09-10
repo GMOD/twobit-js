@@ -1,4 +1,4 @@
-const BigInt32 = BigInt(32)
+const BigInt32 = 32n
 
 export function getBigInt64(
   dataView: DataView,
