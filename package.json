@@ -35,6 +35,7 @@
     "coverage": "yarn test --coverage",
     "lint": "eslint --report-unused-disable-directives --max-warnings 0",
     "docs": "documentation readme src/twoBitFile.ts --section=TwoBitFile",
+    "postdocs": "yarn format && git commit -am 'readme'",
     "clean": "rimraf dist esm",
     "prebuild": "yarn docs && yarn clean",
     "build:esm": "tsc --outDir esm",
