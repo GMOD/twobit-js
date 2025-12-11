@@ -33,6 +33,7 @@ export default defineConfig(
     rules: {
       'no-underscore-dangle': 0,
       curly: 'error',
+      'unicorn/text-encoding-identifier-case': 'off',
       'unicorn/no-useless-undefined': 0,
       'unicorn/prefer-node-protocol': 0,
       'unicorn/filename-case': 0,
