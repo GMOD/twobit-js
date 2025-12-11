@@ -184,7 +184,7 @@ export default class TwoBitFile {
   }
 
   async _getSequenceRecord(offset: number) {
-    // First read: get dnaSize and nBlockCount, then read nBlocks + maskBlockCount
+    // First read: get dnaSize and nBlockCount
     const header = await this.filehandle.read(8, offset)
     const headerView = new DataView(
       header.buffer,
@@ -194,26 +194,24 @@ export default class TwoBitFile {
     const dnaSize = headerView.getUint32(0, true)
     const nBlockCount = headerView.getUint32(4, true)
 
-    // Second read: nBlocks data + maskBlockCount + maskBlocks data + reserved
-    // We read nBlocks, then maskBlockCount tells us how much more to read
+    // Second read: nBlocks data + maskBlockCount
     const nBlocksLen = nBlockCount * 8 + 4 // +4 for maskBlockCount
     const nBlocksData = await this.filehandle.read(nBlocksLen, offset + 8)
+
+    // Create Uint32Array view directly over the buffer (little-endian native)
+    // Note: need to copy to aligned buffer since source may not be aligned
+    const nBlocksAligned = new Uint32Array(nBlockCount * 2 + 1)
     const nBlocksView = new DataView(
       nBlocksData.buffer,
       nBlocksData.byteOffset,
       nBlocksData.length,
     )
-
-    const nBlockStarts = new Array<number>(nBlockCount)
-    const nBlockSizes = new Array<number>(nBlockCount)
-    let pos = 0
-    for (let i = 0; i < nBlockCount; i++, pos += 4) {
-      nBlockStarts[i] = nBlocksView.getUint32(pos, true)
+    for (let i = 0; i < nBlockCount * 2 + 1; i++) {
+      nBlocksAligned[i] = nBlocksView.getUint32(i * 4, true)
     }
-    for (let i = 0; i < nBlockCount; i++, pos += 4) {
-      nBlockSizes[i] = nBlocksView.getUint32(pos, true)
-    }
-    const maskBlockCount = nBlocksView.getUint32(pos, true)
+    const nBlockStarts = nBlocksAligned.subarray(0, nBlockCount)
+    const nBlockSizes = nBlocksAligned.subarray(nBlockCount, nBlockCount * 2)
+    const maskBlockCount = nBlocksAligned[nBlockCount * 2] ?? 0
 
     // Third read: maskBlocks data + reserved
     const maskBlocksLen = maskBlockCount * 8 + 4
@@ -221,21 +219,21 @@ export default class TwoBitFile {
       maskBlocksLen,
       offset + 8 + nBlocksLen,
     )
+
+    const maskBlocksAligned = new Uint32Array(maskBlockCount * 2)
     const maskBlocksView = new DataView(
       maskBlocksData.buffer,
       maskBlocksData.byteOffset,
       maskBlocksData.length,
     )
-
-    const maskBlockStarts = new Array<number>(maskBlockCount)
-    const maskBlockSizes = new Array<number>(maskBlockCount)
-    pos = 0
-    for (let i = 0; i < maskBlockCount; i++, pos += 4) {
-      maskBlockStarts[i] = maskBlocksView.getUint32(pos, true)
+    for (let i = 0; i < maskBlockCount * 2; i++) {
+      maskBlocksAligned[i] = maskBlocksView.getUint32(i * 4, true)
     }
-    for (let i = 0; i < maskBlockCount; i++, pos += 4) {
-      maskBlockSizes[i] = maskBlocksView.getUint32(pos, true)
-    }
+    const maskBlockStarts = maskBlocksAligned.subarray(0, maskBlockCount)
+    const maskBlockSizes = maskBlocksAligned.subarray(
+      maskBlockCount,
+      maskBlockCount * 2,
+    )
 
     return {
       dnaSize,
@@ -308,9 +306,9 @@ export default class TwoBitFile {
     while (genomicPosition < regionEnd) {
       // advance past mask blocks that end before current position
       while (
-        (maskBlockStarts[maskBlockIdx] ?? Infinity) +
-          (maskBlockSizes[maskBlockIdx] ?? 0) <=
-        genomicPosition
+        maskBlockIdx < maskBlockStarts.length &&
+        maskBlockStarts[maskBlockIdx]! + maskBlockSizes[maskBlockIdx]! <=
+          genomicPosition
       ) {
         maskBlockIdx++
       }
@@ -337,19 +335,18 @@ export default class TwoBitFile {
 
         const lookup = baseIsMasked ? maskedByteTo4Bases : byteTo4Bases
 
-        // process bases up to runEnd
+        // process bases up to runEnd using bitwise ops for speed
         while (genomicPosition < runEnd) {
-          const bytePosition = Math.floor(genomicPosition / 4) - baseBytesOffset
-          const subPosition = genomicPosition % 4
-          const byte = buffer[bytePosition]
+          const bytePosition = (genomicPosition >>> 2) - baseBytesOffset
+          const subPosition = genomicPosition & 3
+          const byte = buffer[bytePosition]!
 
           // if aligned to byte boundary and have room for full byte, emit all 4
           if (subPosition === 0 && genomicPosition + 4 <= runEnd) {
-            sequenceParts.push(lookup[byte] ?? '')
+            sequenceParts.push(lookup[byte]!)
             genomicPosition += 4
           } else {
-            // emit single base
-            sequenceParts.push(lookup[byte]?.[subPosition] ?? '')
+            sequenceParts.push(lookup[byte]![subPosition]!)
             genomicPosition += 1
           }
         }
@@ -361,8 +358,8 @@ export default class TwoBitFile {
 
   _getOverlappingBlockStartIdx(
     regionStart: number,
-    blockStarts: number[],
-    blockSizes: number[],
+    blockStarts: ArrayLike<number>,
+    blockSizes: ArrayLike<number>,
   ) {
     const len = blockStarts.length
     if (len === 0) {
@@ -374,7 +371,8 @@ export default class TwoBitFile {
     let hi = len
     while (lo < hi) {
       const mid = (lo + hi) >>> 1
-      const blockEnd = (blockStarts[mid] ?? 0) + (blockSizes[mid] ?? 0)
+      // mid is always valid index since lo < hi <= len
+      const blockEnd = blockStarts[mid]! + blockSizes[mid]!
       if (blockEnd <= regionStart) {
         lo = mid + 1
       } else {
