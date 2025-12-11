@@ -69,12 +69,12 @@ benchTwoBit(
   0,
   100,
   {
-    iterations: 5000,
+    iterations: 10000,
     warmupIterations: 500,
   },
 )
 benchTwoBit('T_ko.2bit large region', 'test/data/T_ko.2bit', 'chr1', 0, 50000, {
-  iterations: 500,
+  iterations: 1000,
   warmupIterations: 50,
 })
 
@@ -82,8 +82,8 @@ benchTwoBitGetSequenceSizes(
   'out2.2bit getSequenceSizes (10000 seqs)',
   'test/data/out2.2bit',
   {
-    iterations: 100,
-    warmupIterations: 10,
+    iterations: 20,
+    warmupIterations: 2,
   },
 )
 
@@ -91,7 +91,7 @@ benchTwoBitGetSequenceSizes(
   'out2.long.2bit getSequenceSizes (10000 seqs)',
   'test/data/out2.long.2bit',
   {
-    iterations: 100,
-    warmupIterations: 10,
+    iterations: 20,
+    warmupIterations: 2,
   },
 )
