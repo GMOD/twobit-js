@@ -301,11 +301,9 @@ export default class TwoBitFile {
     const sequenceParts: string[] = []
     let nBlockIdx = nBlockStartIdx
     let maskBlockIdx = maskBlockStartIdx
-    for (
-      let genomicPosition = regionStart;
-      genomicPosition < regionEnd;
-      genomicPosition += 1
-    ) {
+    let genomicPosition = regionStart
+
+    while (genomicPosition < regionEnd) {
       // advance past mask blocks that end before current position
       while (
         (maskBlockStarts[maskBlockIdx] ?? Infinity) +
@@ -327,16 +325,32 @@ export default class TwoBitFile {
         const effectiveEnd = Math.min(nEnd, regionEnd)
         const nCount = effectiveEnd - genomicPosition
         sequenceParts.push((baseIsMasked ? 'n' : 'N').repeat(nCount))
-        genomicPosition = effectiveEnd - 1
+        genomicPosition = effectiveEnd
       } else {
-        const bytePosition = Math.floor(genomicPosition / 4) - baseBytesOffset
-        const subPosition = genomicPosition % 4
-        const byte = buffer[bytePosition]
-        sequenceParts.push(
-          baseIsMasked
-            ? (maskedByteTo4Bases[byte]?.[subPosition] ?? '')
-            : (byteTo4Bases[byte]?.[subPosition] ?? ''),
-        )
+        // find how far we can go before hitting a block boundary or mask change
+        const nextNStart = nBlockStarts[nBlockIdx] ?? Infinity
+        const runEnd = baseIsMasked
+          ? Math.min(maskEnd, nextNStart, regionEnd)
+          : Math.min(maskStart, nextNStart, regionEnd)
+
+        const lookup = baseIsMasked ? maskedByteTo4Bases : byteTo4Bases
+
+        // process bases up to runEnd
+        while (genomicPosition < runEnd) {
+          const bytePosition = Math.floor(genomicPosition / 4) - baseBytesOffset
+          const subPosition = genomicPosition % 4
+          const byte = buffer[bytePosition]
+
+          // if aligned to byte boundary and have room for full byte, emit all 4
+          if (subPosition === 0 && genomicPosition + 4 <= runEnd) {
+            sequenceParts.push(lookup[byte] ?? '')
+            genomicPosition += 4
+          } else {
+            // emit single base
+            sequenceParts.push(lookup[byte]?.[subPosition] ?? '')
+            genomicPosition += 1
+          }
+        }
       }
     }
 

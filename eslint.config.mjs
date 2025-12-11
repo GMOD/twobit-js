@@ -9,6 +9,7 @@ export default defineConfig(
     ignores: [
       'esm/**/*',
       'dist/**/*',
+      'esm_*/*',
       '*.js',
       '*.mjs',
       'example/*',
