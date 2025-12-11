@@ -58,7 +58,6 @@ const seqNames = await t.getSequenceNames()
 ##### Parameters
 
 - `args` **[object](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object)**&#x20;
-
   - `args.filehandle` **Filehandle?** node fs.promises-like filehandle for the .2bit file.
     Only needs to support `filehandle.read(buffer, offset, length, position)`
   - `args.path` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)?** filesystem path for the .2bit file to open
