@@ -113,11 +113,13 @@ export default class TwoBitFile {
     // const reserved = dataView.getUint32(offset, le)
     offset += 4
     const indexData = []
-    const decoder = new TextDecoder('utf8')
     for (let i = 0; i < sequenceCount; i++) {
       const nameLength = dataView.getUint8(offset)
       offset += 1
-      const name = decoder.decode(b.subarray(offset, offset + nameLength))
+      let name = ''
+      for (let j = 0; j < nameLength; j++) {
+        name += String.fromCharCode(b[offset + j] ?? 0)
+      }
       offset += nameLength
       if (header.version === 1) {
         const dataOffset = Number(dataView.getBigUint64(offset, le))
