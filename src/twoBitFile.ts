@@ -307,7 +307,7 @@ export default class TwoBitFile {
       // advance past mask blocks that end before current position
       while (
         maskBlockIdx < maskBlockStarts.length &&
-        maskBlockStarts[maskBlockIdx]! + maskBlockSizes[maskBlockIdx]! <=
+        maskBlockStarts[maskBlockIdx] + maskBlockSizes[maskBlockIdx] <=
           genomicPosition
       ) {
         maskBlockIdx++
@@ -339,14 +339,14 @@ export default class TwoBitFile {
         while (genomicPosition < runEnd) {
           const bytePosition = (genomicPosition >>> 2) - baseBytesOffset
           const subPosition = genomicPosition & 3
-          const byte = buffer[bytePosition]!
+          const byte = buffer[bytePosition]
 
           // if aligned to byte boundary and have room for full byte, emit all 4
           if (subPosition === 0 && genomicPosition + 4 <= runEnd) {
-            sequenceParts.push(lookup[byte]!)
+            sequenceParts.push(lookup[byte])
             genomicPosition += 4
           } else {
-            sequenceParts.push(lookup[byte]![subPosition]!)
+            sequenceParts.push(lookup[byte][subPosition])
             genomicPosition += 1
           }
         }
@@ -372,7 +372,7 @@ export default class TwoBitFile {
     while (lo < hi) {
       const mid = (lo + hi) >>> 1
       // mid is always valid index since lo < hi <= len
-      const blockEnd = blockStarts[mid]! + blockSizes[mid]!
+      const blockEnd = blockStarts[mid] + blockSizes[mid]
       if (blockEnd <= regionStart) {
         lo = mid + 1
       } else {

@@ -13,9 +13,11 @@ Read .2bit sequence files using pure JavaScript, works in node or in the browser
 ## Usage
 
 ```js
-const { TwoBitFile } = require('@gmod/twobit')
+import { TwoBitFile } from '@gmod/twobit'
+import { resolve } from 'import.meta.resolve'
+
 const t = new TwoBitFile({
-  path: require.resolve('./data/foo.2bit'),
+  path: resolve('@gmod/twobit', './data/foo.2bit'),
 })
 
 // get the first 10 bases of a sequence from the file.
