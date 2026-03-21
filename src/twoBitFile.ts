@@ -118,7 +118,7 @@ export default class TwoBitFile {
       offset += 1
       let name = ''
       for (let j = 0; j < nameLength; j++) {
-        name += String.fromCharCode(b[offset + j] ?? 0)
+        name += String.fromCodePoint(b[offset + j] ?? 0)
       }
       offset += nameLength
       if (header.version === 1) {
