@@ -6,7 +6,7 @@ const TWOBIT_MAGIC = 0x1a412743
 
 const twoBit = ['T', 'C', 'A', 'G']
 // byteTo4Bases is an array of byteValue -> 'ACTG'
-const byteTo4Bases = [] as string[]
+const byteTo4Bases: string[] = []
 for (let index = 0; index < 256; index++) {
   byteTo4Bases.push(
     twoBit[(index >> 6) & 3] +
@@ -21,8 +21,8 @@ const maskedByteTo4Bases = byteTo4Bases.map(bases => bases.toLowerCase())
 export default class TwoBitFile {
   private filehandle: GenericFilehandle
   private version?: number
-  private headerP: ReturnType<typeof this._getHeader> | undefined
-  private indexP: ReturnType<typeof this._getIndex> | undefined
+  private headerP: ReturnType<typeof this.getHeaderData> | undefined
+  private indexP: ReturnType<typeof this.getIndexData> | undefined
 
   /**
    * @param {object} args
@@ -46,7 +46,7 @@ export default class TwoBitFile {
     }
   }
 
-  async _detectEndianness() {
+  private async detectEndianness() {
     const buffer = await this.filehandle.read(8, 0)
     const dataView = new DataView(buffer.buffer)
     const magic = dataView.getInt32(0, true)
@@ -58,15 +58,15 @@ export default class TwoBitFile {
   }
 
   getHeader() {
-    this.headerP ??= this._getHeader().catch((error: unknown) => {
+    this.headerP ??= this.getHeaderData().catch((error: unknown) => {
       this.headerP = undefined
       throw error
     })
     return this.headerP
   }
 
-  async _getHeader() {
-    await this._detectEndianness()
+  private async getHeaderData() {
+    await this.detectEndianness()
 
     const b = await this.filehandle.read(16, 0)
     const le = true
@@ -75,7 +75,7 @@ export default class TwoBitFile {
     const magic = dataView.getInt32(offset, le)
     offset += 4
     if (magic !== 0x1a412743) {
-      throw new Error(`Wrong magic number ${magic}`)
+      throw new Error(`Wrong magic number ${String(magic)}`)
     }
     const version = dataView.getInt32(offset, le)
     offset += 4
@@ -92,14 +92,14 @@ export default class TwoBitFile {
   }
 
   getIndex() {
-    this.indexP ??= this._getIndex().catch((error: unknown) => {
+    this.indexP ??= this.getIndexData().catch((error: unknown) => {
       this.indexP = undefined
       throw error
     })
     return this.indexP
   }
 
-  async _getIndex() {
+  private async getIndexData() {
     const header = await this.getHeader()
     const maxIndexLength =
       8 + header.sequenceCount * (1 + 256 + (this.version === 1 ? 8 : 4))
@@ -110,8 +110,7 @@ export default class TwoBitFile {
     let offset = 0
     const sequenceCount = dataView.getUint32(offset, le)
     offset += 4
-    // const reserved = dataView.getUint32(offset, le)
-    offset += 4
+    offset += 4 // skip reserved field
     const indexData = []
     for (let i = 0; i < sequenceCount; i++) {
       const nameLength = dataView.getUint8(offset)
@@ -157,9 +156,9 @@ export default class TwoBitFile {
     const index = await this.getIndex()
     const seqNames = Object.keys(index)
     const sizes = await Promise.all(
-      Object.values(index).map(offset => this._getSequenceSize(offset)),
+      Object.values(index).map(offset => this.getSequenceSizeAt(offset)),
     )
-    const returnObject = {} as Record<string, number>
+    const returnObject: Record<string, number> = {}
     for (const [index_, seqName] of seqNames.entries()) {
       returnObject[seqName] = sizes[index_]
     }
@@ -174,16 +173,16 @@ export default class TwoBitFile {
   async getSequenceSize(seqName: string) {
     const index = await this.getIndex()
     const offset = index[seqName]
-    return offset ? this._getSequenceSize(offset) : undefined
+    return offset ? this.getSequenceSizeAt(offset) : undefined
   }
 
-  async _getSequenceSize(offset: number) {
+  private async getSequenceSizeAt(offset: number) {
     const b = await this.filehandle.read(4, offset)
     const dataView = new DataView(b.buffer, b.byteOffset, b.length)
     return dataView.getUint32(0, true)
   }
 
-  async _getSequenceRecord(offset: number) {
+  private async getSequenceRecord(offset: number) {
     // First read: get dnaSize and nBlockCount
     const header = await this.filehandle.read(8, offset)
     const headerView = new DataView(
@@ -265,7 +264,7 @@ export default class TwoBitFile {
       return undefined
     }
     // fetch the record for the seq
-    const record = await this._getSequenceRecord(offset)
+    const record = await this.getSequenceRecord(offset)
 
     if (regionStart < 0) {
       throw new TypeError('regionStart cannot be less than 0')
@@ -275,12 +274,12 @@ export default class TwoBitFile {
       regionEnd = record.dnaSize
     }
 
-    const nBlockStartIdx = this._getOverlappingBlockStartIdx(
+    const nBlockStartIdx = this.getOverlappingBlockStartIdx(
       regionStart,
       record.nBlocks.starts,
       record.nBlocks.sizes,
     )
-    const maskBlockStartIdx = this._getOverlappingBlockStartIdx(
+    const maskBlockStartIdx = this.getOverlappingBlockStartIdx(
       regionStart,
       record.maskBlocks.starts,
       record.maskBlocks.sizes,
@@ -356,7 +355,7 @@ export default class TwoBitFile {
     return sequenceParts.join('')
   }
 
-  _getOverlappingBlockStartIdx(
+  private getOverlappingBlockStartIdx(
     regionStart: number,
     blockStarts: ArrayLike<number>,
     blockSizes: ArrayLike<number>,
