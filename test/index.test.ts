@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest'
 
-import { TwoBitFile } from '../src'
+import { TwoBitFile } from '../src/index.ts'
 
 test('loads some small bits of data from foo.2bit', async () => {
   const t = new TwoBitFile({
