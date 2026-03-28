@@ -1,3 +1,5 @@
+## [6.0.2](https://github.com/GMOD/twobit-js/compare/v6.0.1...v6.0.2) (2026-03-28)
+
 ## [6.0.1](https://github.com/GMOD/twobit-js/compare/v6.0.0...v6.0.1) (2025-05-13)
 
 # [6.0.0](https://github.com/GMOD/twobit-js/compare/v4.0.1...v6.0.0) (2025-04-30)
