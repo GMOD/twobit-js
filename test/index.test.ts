@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest'
 
-import { TwoBitFile } from '../src'
+import { TwoBitFile } from '../src/index.ts'
 
 test('loads some small bits of data from foo.2bit', async () => {
   const t = new TwoBitFile({
@@ -108,4 +108,127 @@ test('can get the length of ctgA in volvox.long.2bit', async () => {
 
   expect(await t2.getSequenceSize('ctgA')).toBe(50001)
   expect(await t2.getSequenceSize('ctgB')).toBe(6079)
+})
+
+// Tests for _getOverlappingBlocks edge cases
+test('handles regions with no overlapping N blocks', async () => {
+  const t = new TwoBitFile({
+    path: 'test/data/foo.2bit',
+  })
+  // Region 47-70 is after the N block (0-47)
+  const seq = await t.getSequence('chr1', 47, 70)
+  expect(seq).toBe('ACTCTATCTATCTATCTATCTAT')
+  expect(seq).not.toContain('N')
+})
+
+test('handles regions entirely within N blocks', async () => {
+  const t = new TwoBitFile({
+    path: 'test/data/foo.2bit',
+  })
+  // Region 0-10 is entirely within the N block
+  const seq = await t.getSequence('chr1', 0, 10)
+  expect(seq).toBe('NNNNNNNNNN')
+})
+
+test('handles regions spanning multiple N blocks', async () => {
+  const t = new TwoBitFile({
+    path: 'test/data/foo.2bit',
+  })
+  // Get a region that includes multiple N blocks (sequence is 159 bases, so 130-159)
+  const seq = await t.getSequence('chr1', 130, 159)
+  expect(seq?.length).toBe(29)
+  expect(seq).toContain('N')
+})
+
+test('handles regions with mask blocks (lowercase)', async () => {
+  const t = new TwoBitFile({
+    path: 'test/data/foo.2bit',
+  })
+  // Region that includes masked bases (lowercase)
+  const seq = await t.getSequence('chr1', 85, 100)
+  expect(seq).toBe('GGGagagagagactc')
+  // Check for lowercase indicating masked regions
+  expect(seq).toMatch(/[a-z]/)
+})
+
+test('handles single base queries', async () => {
+  const t = new TwoBitFile({
+    path: 'test/data/foo.2bit',
+  })
+  expect(await t.getSequence('chr1', 0, 1)).toBe('N')
+  expect(await t.getSequence('chr1', 47, 48)).toBe('A')
+  expect(await t.getSequence('chr1', 85, 86)).toBe('G')
+})
+
+test('handles queries at block boundaries', async () => {
+  const t = new TwoBitFile({
+    path: 'test/data/foo.2bit',
+  })
+  // Query right at the end of N block
+  expect(await t.getSequence('chr1', 46, 48)).toBe('NA')
+  // Query spanning from inside to outside N block
+  expect(await t.getSequence('chr1', 44, 50)).toBe('NNNACT')
+})
+
+test('handles large region queries efficiently', async () => {
+  const t = new TwoBitFile({
+    path: 'test/data/volvox.2bit',
+  })
+  // Query a large region
+  const seq = await t.getSequence('ctgA', 0, 50000)
+  expect(seq?.length).toBe(50000)
+})
+
+test('handles multiple sequential queries on same file', async () => {
+  const t = new TwoBitFile({
+    path: 'test/data/foo.2bit',
+  })
+  // Multiple queries should all return consistent results
+  const results = await Promise.all([
+    t.getSequence('chr1', 0, 10),
+    t.getSequence('chr1', 10, 20),
+    t.getSequence('chr1', 20, 30),
+    t.getSequence('chr1', 30, 40),
+    t.getSequence('chr1', 40, 50),
+  ])
+  expect(results.join('')).toBe(await t.getSequence('chr1', 0, 50))
+})
+
+test('handles queries beyond sequence end gracefully', async () => {
+  const t = new TwoBitFile({
+    path: 'test/data/foo.2bit',
+  })
+  const size = await t.getSequenceSize('chr1')
+  expect(size).toBe(159)
+  // Query past the end should clamp to sequence length
+  const seq = await t.getSequence('chr1', 150, 200)
+  expect(seq?.length).toBe(9)
+})
+
+test('handles empty region queries', async () => {
+  const t = new TwoBitFile({
+    path: 'test/data/foo.2bit',
+  })
+  // Start equals end
+  expect(await t.getSequence('chr1', 50, 50)).toBe('')
+})
+
+test('volvox ctgB first 100 bases match expected', async () => {
+  const t = new TwoBitFile({
+    path: 'test/data/volvox.2bit',
+  })
+  const seq = await t.getSequence('ctgB', 0, 100)
+  expect(seq).toBe(
+    'ACATGCTAGCTACGTGCATGCTCGACATGCATCATCAGCCTGATGCTGATACATGCTAGCTACGTGCATGCTCGACATGCATCATCAGCCTGATGCTGAT',
+  )
+})
+
+test('T_ko first 100 bases match expected', async () => {
+  const t = new TwoBitFile({
+    path: 'test/data/T_ko.2bit',
+  })
+  const seq = await t.getSequence('chr1', 0, 100)
+  expect(seq).toBe(
+    'ATGATCCTCGACACTGACTACATAACCGAGGATGGAAAGCCTGTCATAAGAATTTTCAAGAAGGAAAACGGCGAGTTTAAGATTGAGTACGACCGGACTT',
+  )
 })
