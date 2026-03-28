@@ -2,8 +2,6 @@ import { LocalFile } from 'generic-filehandle2'
 
 import type { GenericFilehandle } from 'generic-filehandle2'
 
-const TWOBIT_MAGIC = 0x1a412743
-
 const twoBit = ['T', 'C', 'A', 'G']
 // byteTo4Bases is an array of byteValue -> 'ACTG'
 const byteTo4Bases: string[] = []
