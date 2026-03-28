@@ -42,6 +42,7 @@ export default defineConfig(
       'unicorn/prefer-node-protocol': 'off',
       'unicorn/filename-case': 'off',
       'unicorn/numeric-separators-style': 'off',
+      'unicorn/number-literal-case': 'off',
       'unicorn/no-new-array': 'off',
       'unicorn/prevent-abbreviations': 'off',
       'unicorn/prefer-spread': 'off',
