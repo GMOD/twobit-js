@@ -20,7 +20,6 @@ const maskedByteTo4Bases = byteTo4Bases.map(bases => bases.toLowerCase())
 
 export default class TwoBitFile {
   private filehandle: GenericFilehandle
-  private version?: number
   private headerP: ReturnType<typeof this.getHeaderData> | undefined
   private indexP: ReturnType<typeof this.getIndexData> | undefined
 
@@ -46,17 +45,6 @@ export default class TwoBitFile {
     }
   }
 
-  private async detectEndianness() {
-    const buffer = await this.filehandle.read(8, 0)
-    const dataView = new DataView(buffer.buffer)
-    const magic = dataView.getInt32(0, true)
-    if (magic === TWOBIT_MAGIC) {
-      this.version = dataView.getInt32(0, true)
-    } else {
-      throw new Error('not a 2bit file')
-    }
-  }
-
   getHeader() {
     this.headerP ??= this.getHeaderData().catch((error: unknown) => {
       this.headerP = undefined
@@ -66,8 +54,6 @@ export default class TwoBitFile {
   }
 
   private async getHeaderData() {
-    await this.detectEndianness()
-
     const b = await this.filehandle.read(16, 0)
     const le = true
     const dataView = new DataView(b.buffer, b.byteOffset, b.length)
@@ -102,7 +88,7 @@ export default class TwoBitFile {
   private async getIndexData() {
     const header = await this.getHeader()
     const maxIndexLength =
-      8 + header.sequenceCount * (1 + 256 + (this.version === 1 ? 8 : 4))
+      8 + header.sequenceCount * (1 + 256 + (header.version === 1 ? 8 : 4))
     const b = await this.filehandle.read(maxIndexLength, 8)
 
     const le = true
@@ -154,15 +140,11 @@ export default class TwoBitFile {
    */
   async getSequenceSizes() {
     const index = await this.getIndex()
-    const seqNames = Object.keys(index)
+    const entries = Object.entries(index)
     const sizes = await Promise.all(
-      Object.values(index).map(offset => this.getSequenceSizeAt(offset)),
+      entries.map(([, offset]) => this.getSequenceSizeAt(offset)),
     )
-    const returnObject: Record<string, number> = {}
-    for (const [index_, seqName] of seqNames.entries()) {
-      returnObject[seqName] = sizes[index_]!
-    }
-    return returnObject
+    return Object.fromEntries(entries.map(([name], i) => [name, sizes[i]!]))
   }
 
   /**
