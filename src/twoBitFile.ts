@@ -2,17 +2,17 @@ import { LocalFile } from 'generic-filehandle2'
 
 import type { GenericFilehandle } from 'generic-filehandle2'
 
-const TWOBIT_MAGIC = 0x1a412743
+const TWOBIT_MAGIC = 0x1A412743
 
 const twoBit = ['T', 'C', 'A', 'G']
 // byteTo4Bases is an array of byteValue -> 'ACTG'
-const byteTo4Bases = [] as string[]
+const byteTo4Bases: string[] = []
 for (let index = 0; index < 256; index++) {
   byteTo4Bases.push(
-    twoBit[(index >> 6) & 3] +
-      twoBit[(index >> 4) & 3] +
-      twoBit[(index >> 2) & 3] +
-      twoBit[index & 3],
+    twoBit[(index >> 6) & 3]! +
+      twoBit[(index >> 4) & 3]! +
+      twoBit[(index >> 2) & 3]! +
+      twoBit[index & 3]!,
   )
 }
 
@@ -21,8 +21,8 @@ const maskedByteTo4Bases = byteTo4Bases.map(bases => bases.toLowerCase())
 export default class TwoBitFile {
   private filehandle: GenericFilehandle
   private version?: number
-  private headerP: ReturnType<typeof this._getHeader> | undefined
-  private indexP: ReturnType<typeof this._getIndex> | undefined
+  private headerP: ReturnType<typeof this.getHeaderData> | undefined
+  private indexP: ReturnType<typeof this.getIndexData> | undefined
 
   /**
    * @param {object} args
@@ -46,7 +46,7 @@ export default class TwoBitFile {
     }
   }
 
-  async _detectEndianness() {
+  private async detectEndianness() {
     const buffer = await this.filehandle.read(8, 0)
     const dataView = new DataView(buffer.buffer)
     const magic = dataView.getInt32(0, true)
@@ -58,15 +58,15 @@ export default class TwoBitFile {
   }
 
   getHeader() {
-    this.headerP ??= this._getHeader().catch((error: unknown) => {
+    this.headerP ??= this.getHeaderData().catch((error: unknown) => {
       this.headerP = undefined
       throw error
     })
     return this.headerP
   }
 
-  async _getHeader() {
-    await this._detectEndianness()
+  private async getHeaderData() {
+    await this.detectEndianness()
 
     const b = await this.filehandle.read(16, 0)
     const le = true
@@ -74,8 +74,8 @@ export default class TwoBitFile {
     let offset = 0
     const magic = dataView.getInt32(offset, le)
     offset += 4
-    if (magic !== 0x1a412743) {
-      throw new Error(`Wrong magic number ${magic}`)
+    if (magic !== 0x1A412743) {
+      throw new Error(`Wrong magic number ${String(magic)}`)
     }
     const version = dataView.getInt32(offset, le)
     offset += 4
@@ -92,14 +92,14 @@ export default class TwoBitFile {
   }
 
   getIndex() {
-    this.indexP ??= this._getIndex().catch((error: unknown) => {
+    this.indexP ??= this.getIndexData().catch((error: unknown) => {
       this.indexP = undefined
       throw error
     })
     return this.indexP
   }
 
-  async _getIndex() {
+  private async getIndexData() {
     const header = await this.getHeader()
     const maxIndexLength =
       8 + header.sequenceCount * (1 + 256 + (this.version === 1 ? 8 : 4))
@@ -110,14 +110,15 @@ export default class TwoBitFile {
     let offset = 0
     const sequenceCount = dataView.getUint32(offset, le)
     offset += 4
-    // const reserved = dataView.getUint32(offset, le)
-    offset += 4
+    offset += 4 // skip reserved field
     const indexData = []
-    const decoder = new TextDecoder('utf8')
     for (let i = 0; i < sequenceCount; i++) {
       const nameLength = dataView.getUint8(offset)
       offset += 1
-      const name = decoder.decode(b.subarray(offset, offset + nameLength))
+      let name = ''
+      for (let j = 0; j < nameLength; j++) {
+        name += String.fromCodePoint(b[offset + j] ?? 0)
+      }
       offset += nameLength
       if (header.version === 1) {
         const dataOffset = Number(dataView.getBigUint64(offset, le))
@@ -155,11 +156,11 @@ export default class TwoBitFile {
     const index = await this.getIndex()
     const seqNames = Object.keys(index)
     const sizes = await Promise.all(
-      Object.values(index).map(offset => this._getSequenceSize(offset)),
+      Object.values(index).map(offset => this.getSequenceSizeAt(offset)),
     )
-    const returnObject = {} as Record<string, number>
+    const returnObject: Record<string, number> = {}
     for (const [index_, seqName] of seqNames.entries()) {
-      returnObject[seqName] = sizes[index_]
+      returnObject[seqName] = sizes[index_]!
     }
     return returnObject
   }
@@ -172,102 +173,73 @@ export default class TwoBitFile {
   async getSequenceSize(seqName: string) {
     const index = await this.getIndex()
     const offset = index[seqName]
-    return offset ? this._getSequenceSize(offset) : undefined
+    return offset ? this.getSequenceSizeAt(offset) : undefined
   }
 
-  async _getSequenceSize(offset: number) {
-    return this._record1(offset).then(f => f.dnaSize)
-  }
-
-  async _record1(offset2: number, len = 8) {
-    const b = await this.filehandle.read(len, offset2)
-    const le = true
-    let offset = 0
+  private async getSequenceSizeAt(offset: number) {
+    const b = await this.filehandle.read(4, offset)
     const dataView = new DataView(b.buffer, b.byteOffset, b.length)
-
-    const dnaSize = dataView.getUint32(offset, le)
-    offset += 4
-    const nBlockCount = dataView.getUint32(offset, le)
-    offset += 4
-    return { dnaSize, nBlockCount }
+    return dataView.getUint32(0, true)
   }
 
-  async _record2(offset2: number, len: number) {
-    const b = await this.filehandle.read(len, offset2)
-    const le = true
-    let offset = 0
-    const dataView = new DataView(b.buffer, b.byteOffset, b.length)
+  private async getSequenceRecord(offset: number) {
+    // First read: get dnaSize and nBlockCount
+    const header = await this.filehandle.read(8, offset)
+    const headerView = new DataView(
+      header.buffer,
+      header.byteOffset,
+      header.length,
+    )
+    const dnaSize = headerView.getUint32(0, true)
+    const nBlockCount = headerView.getUint32(4, true)
 
-    const nBlockCount = dataView.getUint32(offset, le)
-    offset += 4
-    const nBlockStarts = [] as number[]
-    for (let i = 0; i < nBlockCount; i++) {
-      const elt = dataView.getUint32(offset, le)
-      offset += 4
-      nBlockStarts.push(elt)
+    // Second read: nBlocks data + maskBlockCount
+    const nBlocksLen = nBlockCount * 8 + 4 // +4 for maskBlockCount
+    const nBlocksData = await this.filehandle.read(nBlocksLen, offset + 8)
+
+    // Create Uint32Array view directly over the buffer (little-endian native)
+    // Note: need to copy to aligned buffer since source may not be aligned
+    const nBlocksAligned = new Uint32Array(nBlockCount * 2 + 1)
+    const nBlocksView = new DataView(
+      nBlocksData.buffer,
+      nBlocksData.byteOffset,
+      nBlocksData.length,
+    )
+    for (let i = 0; i < nBlockCount * 2 + 1; i++) {
+      nBlocksAligned[i] = nBlocksView.getUint32(i * 4, true)
     }
-    const nBlockSizes = [] as number[]
-    for (let i = 0; i < nBlockCount; i++) {
-      const elt = dataView.getUint32(offset, le)
-      offset += 4
-      nBlockSizes.push(elt)
+    const nBlockStarts = nBlocksAligned.subarray(0, nBlockCount)
+    const nBlockSizes = nBlocksAligned.subarray(nBlockCount, nBlockCount * 2)
+    const maskBlockCount = nBlocksAligned[nBlockCount * 2] ?? 0
+
+    // Third read: maskBlocks data + reserved
+    const maskBlocksLen = maskBlockCount * 8 + 4
+    const maskBlocksData = await this.filehandle.read(
+      maskBlocksLen,
+      offset + 8 + nBlocksLen,
+    )
+
+    const maskBlocksAligned = new Uint32Array(maskBlockCount * 2)
+    const maskBlocksView = new DataView(
+      maskBlocksData.buffer,
+      maskBlocksData.byteOffset,
+      maskBlocksData.length,
+    )
+    for (let i = 0; i < maskBlockCount * 2; i++) {
+      maskBlocksAligned[i] = maskBlocksView.getUint32(i * 4, true)
     }
-    const maskBlockCount = dataView.getUint32(offset, le)
-    return {
+    const maskBlockStarts = maskBlocksAligned.subarray(0, maskBlockCount)
+    const maskBlockSizes = maskBlocksAligned.subarray(
       maskBlockCount,
-      nBlockSizes,
-      nBlockStarts,
-    }
-  }
-  async _record3(offset2: number, len: number) {
-    const b = await this.filehandle.read(len, offset2)
-    const le = true
-    let offset = 0
-    const dataView = new DataView(b.buffer, b.byteOffset, b.length)
+      maskBlockCount * 2,
+    )
 
-    const maskBlockCount = dataView.getUint32(offset, le)
-    offset += 4
-    const maskBlockStarts = [] as number[]
-    for (let i = 0; i < maskBlockCount; i++) {
-      const elt = dataView.getUint32(offset, le)
-      offset += 4
-      maskBlockStarts.push(elt)
-    }
-    const maskBlockSizes = [] as number[]
-    for (let i = 0; i < maskBlockCount; i++) {
-      const elt = dataView.getUint32(offset, le)
-      offset += 4
-      maskBlockSizes.push(elt)
-    }
-    const reserved = dataView.getInt32(offset, le)
     return {
-      maskBlockCount,
-      maskBlockSizes,
-      maskBlockStarts,
-      reserved,
+      dnaSize,
+      nBlocks: { starts: nBlockStarts, sizes: nBlockSizes },
+      maskBlocks: { starts: maskBlockStarts, sizes: maskBlockSizes },
+      dnaPosition: offset + 8 + nBlocksLen + maskBlocksLen,
     }
-  }
-
-  async _getSequenceRecord(offset: number) {
-    const rec1 = await this._record1(offset)
-    const rec2DataLen = rec1.nBlockCount * 8 + 8
-    const rec2 = await this._record2(offset + 4, rec2DataLen)
-    const rec3DataLen = rec2.maskBlockCount * 8 + 8
-    const rec3 = await this._record3(offset + 4 + rec2DataLen - 4, rec3DataLen)
-
-    const rec = {
-      dnaSize: rec1.dnaSize,
-      nBlocks: {
-        starts: rec2.nBlockStarts,
-        sizes: rec2.nBlockSizes,
-      },
-      maskBlocks: {
-        starts: rec3.maskBlockStarts,
-        sizes: rec3.maskBlockSizes,
-      },
-      dnaPosition: offset + 4 + rec2DataLen - 4 + rec3DataLen,
-    }
-    return rec
   }
 
   /**
@@ -292,7 +264,7 @@ export default class TwoBitFile {
       return undefined
     }
     // fetch the record for the seq
-    const record = await this._getSequenceRecord(offset)
+    const record = await this.getSequenceRecord(offset)
 
     if (regionStart < 0) {
       throw new TypeError('regionStart cannot be less than 0')
@@ -302,15 +274,13 @@ export default class TwoBitFile {
       regionEnd = record.dnaSize
     }
 
-    const nBlocks = this._getOverlappingBlocks(
+    const nBlockStartIdx = this.getOverlappingBlockStartIdx(
       regionStart,
-      regionEnd,
       record.nBlocks.starts,
       record.nBlocks.sizes,
     )
-    const maskBlocks = this._getOverlappingBlocks(
+    const maskBlockStartIdx = this.getOverlappingBlockStartIdx(
       regionStart,
-      regionEnd,
       record.maskBlocks.starts,
       record.maskBlocks.sizes,
     )
@@ -322,92 +292,92 @@ export default class TwoBitFile {
       record.dnaPosition + baseBytesOffset,
     )
 
-    let sequenceBases = ''
-    for (
-      let genomicPosition = regionStart;
-      genomicPosition < regionEnd;
-      genomicPosition += 1
-    ) {
-      // check whether we are currently masked
-      while (maskBlocks.length > 0 && maskBlocks[0].end <= genomicPosition) {
-        maskBlocks.shift()
+    const nBlockStarts = record.nBlocks.starts
+    const nBlockSizes = record.nBlocks.sizes
+    const maskBlockStarts = record.maskBlocks.starts
+    const maskBlockSizes = record.maskBlocks.sizes
+
+    const sequenceParts: string[] = []
+    let nBlockIdx = nBlockStartIdx
+    let maskBlockIdx = maskBlockStartIdx
+    let genomicPosition = regionStart
+
+    while (genomicPosition < regionEnd) {
+      // advance past mask blocks that end before current position
+      while (
+        maskBlockIdx < maskBlockStarts.length &&
+        maskBlockStarts[maskBlockIdx]! + maskBlockSizes[maskBlockIdx]! <=
+          genomicPosition
+      ) {
+        maskBlockIdx++
       }
+      const maskStart = maskBlockStarts[maskBlockIdx] ?? Infinity
+      const maskEnd = maskStart + (maskBlockSizes[maskBlockIdx] ?? 0)
       const baseIsMasked =
-        maskBlocks[0] &&
-        maskBlocks[0].start <= genomicPosition &&
-        maskBlocks[0].end > genomicPosition
+        maskStart <= genomicPosition && maskEnd > genomicPosition
 
       // process the N block if we have one
-      if (
-        nBlocks[0] &&
-        genomicPosition >= nBlocks[0].start &&
-        genomicPosition < nBlocks[0].end
-      ) {
-        const currentNBlock = nBlocks.shift()
-        for (
-          ;
-          genomicPosition < currentNBlock.end && genomicPosition < regionEnd;
-          genomicPosition += 1
-        ) {
-          sequenceBases += baseIsMasked ? 'n' : 'N'
-        }
-        genomicPosition -= 1
+      const nStart = nBlockStarts[nBlockIdx] ?? Infinity
+      const nEnd = nStart + (nBlockSizes[nBlockIdx] ?? 0)
+      if (genomicPosition >= nStart && genomicPosition < nEnd) {
+        nBlockIdx++
+        const effectiveEnd = Math.min(nEnd, regionEnd)
+        const nCount = effectiveEnd - genomicPosition
+        sequenceParts.push((baseIsMasked ? 'n' : 'N').repeat(nCount))
+        genomicPosition = effectiveEnd
       } else {
-        const bytePosition = Math.floor(genomicPosition / 4) - baseBytesOffset
-        const subPosition = genomicPosition % 4
-        const byte = buffer[bytePosition]
-        sequenceBases += baseIsMasked
-          ? maskedByteTo4Bases[byte][subPosition]
-          : byteTo4Bases[byte][subPosition]
+        // find how far we can go before hitting a block boundary or mask change
+        const nextNStart = nBlockStarts[nBlockIdx] ?? Infinity
+        const runEnd = baseIsMasked
+          ? Math.min(maskEnd, nextNStart, regionEnd)
+          : Math.min(maskStart, nextNStart, regionEnd)
+
+        const lookup = baseIsMasked ? maskedByteTo4Bases : byteTo4Bases
+
+        // process bases up to runEnd using bitwise ops for speed
+        while (genomicPosition < runEnd) {
+          const bytePosition = (genomicPosition >>> 2) - baseBytesOffset
+          const subPosition = genomicPosition & 3
+          const byte = buffer[bytePosition]!
+
+          // if aligned to byte boundary and have room for full byte, emit all 4
+          if (subPosition === 0 && genomicPosition + 4 <= runEnd) {
+            sequenceParts.push(lookup[byte]!)
+            genomicPosition += 4
+          } else {
+            sequenceParts.push(lookup[byte]![subPosition]!)
+            genomicPosition += 1
+          }
+        }
       }
     }
 
-    return sequenceBases
+    return sequenceParts.join('')
   }
 
-  _getOverlappingBlocks(
+  private getOverlappingBlockStartIdx(
     regionStart: number,
-    regionEnd: number,
-    blockStarts: number[],
-    blockSizes: number[],
+    blockStarts: ArrayLike<number>,
+    blockSizes: ArrayLike<number>,
   ) {
-    // find the start and end indexes of the blocks that match
-    let startIndex: number | undefined
-    let endIndex: number | undefined
-    for (const [index, blockStart] of blockStarts.entries()) {
-      const blockSize = blockSizes[index]
-      if (regionStart >= blockStart + blockSize || regionEnd <= blockStart) {
-        // block does not overlap the region
-        if (startIndex !== undefined) {
-          endIndex = index
-          break
-        }
-      }
-      // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
-      else if (startIndex === undefined) {
-        startIndex = index
-      } // block does overlap the region, record this if it is the first
+    const len = blockStarts.length
+    if (len === 0) {
+      return 0
     }
 
-    if (startIndex === undefined) {
-      return []
-    }
-
-    // now format some block objects to return
-    endIndex ??= blockStarts.length
-
-    const blocks = new Array(endIndex - startIndex)
-    for (
-      let blockNumber = startIndex;
-      blockNumber < endIndex;
-      blockNumber += 1
-    ) {
-      blocks[blockNumber - startIndex] = {
-        start: blockStarts[blockNumber],
-        end: blockStarts[blockNumber] + blockSizes[blockNumber],
-        size: blockSizes[blockNumber],
+    // Binary search for first block whose end > regionStart
+    let lo = 0
+    let hi = len
+    while (lo < hi) {
+      const mid = (lo + hi) >>> 1
+      // mid is always valid index since lo < hi <= len
+      const blockEnd = blockStarts[mid]! + blockSizes[mid]!
+      if (blockEnd <= regionStart) {
+        lo = mid + 1
+      } else {
+        hi = mid
       }
     }
-    return blocks
+    return lo
   }
 }
