@@ -51,7 +51,11 @@ Returns sequence bases as a string, or `undefined` if `seqName` is not found. Co
 
 ## Publishing
 
-Releases are published to npm using [npm provenance and trusted publishing](https://docs.npmjs.com/generating-provenance-statements) via GitHub Actions.
+[Trusted publishing](https://docs.npmjs.com/about-trusted-publishing) via GitHub Actions.
+
+```bash
+npm version patch  # or minor/major
+```
 
 ## Academic Use
 
