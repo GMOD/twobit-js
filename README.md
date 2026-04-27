@@ -94,6 +94,10 @@ Returns **any** sequence length, or undefined if it is not in the file
 
 Returns **any** for a string of sequence bases
 
+## Publishing
+
+Releases are published to npm using [npm provenance and trusted publishing](https://docs.npmjs.com/generating-provenance-statements) via GitHub Actions.
+
 ## Academic Use
 
 This package was written with funding from the [NHGRI](http://genome.gov) as part of the [JBrowse](http://jbrowse.org) project. If you use it in an academic project that you publish, please cite the most recent JBrowse paper, which will be linked from [jbrowse.org](http://jbrowse.org).
