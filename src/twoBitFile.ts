@@ -121,7 +121,7 @@ export default class TwoBitFile {
   }
 
   /**
-   * @returns for an array of string sequence names that are found in the file
+   * @returns array of sequence names in the file
    */
   async getSequenceNames() {
     const index = await this.getIndex()
@@ -129,8 +129,7 @@ export default class TwoBitFile {
   }
 
   /**
-   * @returns object listing the lengths of all sequences like `{seqName:
-   * length, ...}`.
+   * @returns object listing the lengths of all sequences like `{seqName: length, ...}`.
    *
    * note: this is a relatively slow operation especially if there are many
    * refseqs in the file, if you can get this information from a different file

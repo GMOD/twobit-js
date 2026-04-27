@@ -13,10 +13,9 @@ Read .2bit sequence files using pure JavaScript, works in node or in the browser
 
 ```js
 import { TwoBitFile } from '@gmod/twobit'
-import { resolve } from 'import.meta.resolve'
 
 const t = new TwoBitFile({
-  path: resolve('@gmod/twobit', './data/foo.2bit'),
+  path: 'path/to/file.2bit',
 })
 
 // get the first 10 bases of a sequence from the file.
@@ -65,14 +64,13 @@ const seqNames = await t.getSequenceNames()
 
 #### getSequenceNames
 
-Returns **any** for an array of string sequence names that are found in the file
+Returns **Promise\<string[]>** array of sequence names in the file
 
 #### getSequenceSizes
 
-Returns **any** object listing the lengths of all sequences like `{seqName:
-length, ...}`.note: this is a relatively slow operation especially if there are many
-refseqs in the file, if you can get this information from a different file
-e.g. a chrom.sizes file, it will be much faster
+Returns **Promise\<Record\<string, number>>** object listing the lengths of all sequences like `{seqName: length, ...}`.
+
+Note: this is a relatively slow operation especially if there are many refseqs in the file. If you can get this information from a different file e.g. a chrom.sizes file, it will be much faster.
 
 #### getSequenceSize
 
@@ -80,7 +78,7 @@ e.g. a chrom.sizes file, it will be much faster
 
 - `seqName` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** name of the sequence
 
-Returns **any** sequence length, or undefined if it is not in the file
+Returns **Promise\<number | undefined>** sequence length, or undefined if not in the file
 
 #### getSequence
 
@@ -92,7 +90,7 @@ Returns **any** sequence length, or undefined if it is not in the file
 - `regionEnd` optional 0-based half-open end of the sequence region
   to fetch. defaults to end of the sequence (optional, default `Number.POSITIVE_INFINITY`)
 
-Returns **any** for a string of sequence bases
+Returns **Promise\<string | undefined>** string of sequence bases, or undefined if sequence not found
 
 ## Publishing
 
