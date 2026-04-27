@@ -14,26 +14,14 @@ Read .2bit sequence files, works in Node.js or the browser.
 ```js
 import { TwoBitFile } from '@gmod/twobit'
 
-const t = new TwoBitFile({
-  path: 'path/to/file.2bit',
-})
+const t = new TwoBitFile({ path: 'path/to/file.2bit' })
 
-// get the first 10 bases of a sequence from the file.
-// coordinates are UCSC standard 0-based half-open
-const chr1Region = await t.getSequence('chr1', 0, 10)
-// chr1Region is now a string of bases, 'ACTG...'
-
-// get a whole sequence from the file
-const chr1Bases = await t.getSequence('chr1')
-
-// get object with all seq lengths as { seqName => length, ... }
-const allSequenceSizes = await t.getSequenceSizes()
-
-// get the size of a single sequence
-const chr1Size = await t.getSequenceSize('chr1')
-
-// get an array of all sequence names in the file
-const seqNames = await t.getSequenceNames()
+// coordinates are 0-based half-open
+const region = await t.getSequence('chr1', 0, 10)
+const fullSeq = await t.getSequence('chr1')
+const sizes = await t.getSequenceSizes()  // { seqName: length, ... }
+const size = await t.getSequenceSize('chr1')
+const names = await t.getSequenceNames()
 ```
 
 ## API
