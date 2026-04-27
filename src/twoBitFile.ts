@@ -7,10 +7,10 @@ const twoBit = ['T', 'C', 'A', 'G']
 const byteTo4Bases: string[] = []
 for (let index = 0; index < 256; index++) {
   byteTo4Bases.push(
-    twoBit[(index >> 6) & 3]! +
-      twoBit[(index >> 4) & 3]! +
-      twoBit[(index >> 2) & 3]! +
-      twoBit[index & 3]!,
+    twoBit[(index >> 6) & 3] +
+      twoBit[(index >> 4) & 3] +
+      twoBit[(index >> 2) & 3] +
+      twoBit[index & 3],
   )
 }
 
@@ -141,7 +141,7 @@ export default class TwoBitFile {
     const sizes = await Promise.all(
       entries.map(([, offset]) => this.getSequenceSizeAt(offset)),
     )
-    return Object.fromEntries(entries.map(([name], i) => [name, sizes[i]!]))
+    return Object.fromEntries(entries.map(([name], i) => [name, sizes[i]]))
   }
 
   /**
@@ -285,7 +285,7 @@ export default class TwoBitFile {
       // advance past mask blocks that end before current position
       while (
         maskBlockIdx < maskBlockStarts.length &&
-        maskBlockStarts[maskBlockIdx]! + maskBlockSizes[maskBlockIdx]! <=
+        maskBlockStarts[maskBlockIdx] + maskBlockSizes[maskBlockIdx] <=
           genomicPosition
       ) {
         maskBlockIdx++
@@ -317,14 +317,14 @@ export default class TwoBitFile {
         while (genomicPosition < runEnd) {
           const bytePosition = (genomicPosition >>> 2) - baseBytesOffset
           const subPosition = genomicPosition & 3
-          const byte = buffer[bytePosition]!
+          const byte = buffer[bytePosition]
 
           // if aligned to byte boundary and have room for full byte, emit all 4
           if (subPosition === 0 && genomicPosition + 4 <= runEnd) {
-            sequenceParts.push(lookup[byte]!)
+            sequenceParts.push(lookup[byte])
             genomicPosition += 4
           } else {
-            sequenceParts.push(lookup[byte]![subPosition]!)
+            sequenceParts.push(lookup[byte][subPosition])
             genomicPosition += 1
           }
         }
@@ -350,7 +350,7 @@ export default class TwoBitFile {
     while (lo < hi) {
       const mid = (lo + hi) >>> 1
       // mid is always valid index since lo < hi <= len
-      const blockEnd = blockStarts[mid]! + blockSizes[mid]!
+      const blockEnd = blockStarts[mid] + blockSizes[mid]
       if (blockEnd <= regionStart) {
         lo = mid + 1
       } else {
