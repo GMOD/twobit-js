@@ -19,7 +19,7 @@ const t = new TwoBitFile({ path: 'path/to/file.2bit' })
 // coordinates are 0-based half-open
 const region = await t.getSequence('chr1', 0, 10)
 const fullSeq = await t.getSequence('chr1')
-const sizes = await t.getSequenceSizes()  // { seqName: length, ... }
+const sizes = await t.getSequenceSizes() // { seqName: length, ... }
 const size = await t.getSequenceSize('chr1')
 const names = await t.getSequenceNames()
 ```
