@@ -203,6 +203,9 @@ test('handles queries beyond sequence end gracefully', async () => {
   // Query past the end should clamp to sequence length
   const seq = await t.getSequence('chr1', 150, 200)
   expect(seq?.length).toBe(9)
+  // Query entirely past the end should return empty string, not throw
+  expect(await t.getSequence('chr1', 200, 300)).toBe('')
+  expect(await t.getSequence('chr1', 159, 200)).toBe('')
 })
 
 test('handles empty region queries', async () => {

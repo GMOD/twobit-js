@@ -137,11 +137,13 @@ export default class TwoBitFile {
    */
   async getSequenceSizes() {
     const index = await this.getIndex()
-    const entries = Object.entries(index)
-    const sizes = await Promise.all(
-      entries.map(([, offset]) => this.getSequenceSizeAt(offset)),
+    const entries = await Promise.all(
+      Object.entries(index).map(
+        async ([name, offset]) =>
+          [name, await this.getSequenceSizeAt(offset)] as const,
+      ),
     )
-    return Object.fromEntries(entries.map(([name], i) => [name, sizes[i]]))
+    return Object.fromEntries(entries)
   }
 
   /**
@@ -152,7 +154,7 @@ export default class TwoBitFile {
   async getSequenceSize(seqName: string) {
     const index = await this.getIndex()
     const offset = index[seqName]
-    return offset ? this.getSequenceSizeAt(offset) : undefined
+    return offset === undefined ? undefined : this.getSequenceSizeAt(offset)
   }
 
   private async getSequenceSizeAt(offset: number) {
@@ -239,7 +241,7 @@ export default class TwoBitFile {
   ) {
     const index = await this.getIndex()
     const offset = index[seqName]
-    if (!offset) {
+    if (offset === undefined) {
       return undefined
     }
     // fetch the record for the seq
@@ -251,6 +253,10 @@ export default class TwoBitFile {
     // end defaults to the end of the sequence
     if (regionEnd > record.dnaSize) {
       regionEnd = record.dnaSize
+    }
+    // if start is past end (e.g. regionStart > dnaSize), nothing to fetch
+    if (regionStart >= regionEnd) {
+      return ''
     }
 
     const nBlockStartIdx = this.getOverlappingBlockStartIdx(

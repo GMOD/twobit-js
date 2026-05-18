@@ -47,7 +47,6 @@
     "biojs"
   ],
   "dependencies": {
-    "@jbrowse/quick-lru": "^7.3.5",
     "generic-filehandle2": "^2.1.4"
   },
   "devDependencies": {
