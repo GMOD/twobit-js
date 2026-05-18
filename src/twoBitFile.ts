@@ -31,6 +31,26 @@ function readBlockPair(view: DataView, byteOffset: number, count: number) {
   }
 }
 
+// binary search for first block whose end > regionStart
+function getOverlappingBlockStartIdx(
+  regionStart: number,
+  blockStarts: ArrayLike<number>,
+  blockSizes: ArrayLike<number>,
+) {
+  let lo = 0
+  let hi = blockStarts.length
+  while (lo < hi) {
+    const mid = (lo + hi) >>> 1
+    const blockEnd = blockStarts[mid]! + blockSizes[mid]!
+    if (blockEnd <= regionStart) {
+      lo = mid + 1
+    } else {
+      hi = mid
+    }
+  }
+  return lo
+}
+
 export default class TwoBitFile {
   private filehandle: GenericFilehandle
   private headerP: ReturnType<typeof this.getHeaderData> | undefined
@@ -101,23 +121,18 @@ export default class TwoBitFile {
   private async getIndexData() {
     const header = await this.getHeader()
     const maxIndexLength =
-      8 + header.sequenceCount * (1 + 256 + (header.version === 1 ? 8 : 4))
+      8 + header.sequenceCount * (1 + 255 + (header.version === 1 ? 8 : 4))
     const b = await this.filehandle.read(maxIndexLength, 8)
 
     const le = true
     const dataView = dataViewOf(b)
-    let offset = 0
-    const sequenceCount = dataView.getUint32(offset, le)
-    offset += 4
-    offset += 4 // skip reserved field
+    const decoder = new TextDecoder('ascii')
+    let offset = 8 // skip sequenceCount + reserved (already known from header)
     const indexData = []
-    for (let i = 0; i < sequenceCount; i++) {
+    for (let i = 0; i < header.sequenceCount; i++) {
       const nameLength = dataView.getUint8(offset)
       offset += 1
-      let name = ''
-      for (let j = 0; j < nameLength; j++) {
-        name += String.fromCodePoint(b[offset + j] ?? 0)
-      }
+      const name = decoder.decode(b.subarray(offset, offset + nameLength))
       offset += nameLength
       if (header.version === 1) {
         const dataOffset = Number(dataView.getBigUint64(offset, le))
@@ -239,12 +254,12 @@ export default class TwoBitFile {
       return ''
     }
 
-    const nBlockStartIdx = this.getOverlappingBlockStartIdx(
+    const nBlockStartIdx = getOverlappingBlockStartIdx(
       regionStart,
       record.nBlocks.starts,
       record.nBlocks.sizes,
     )
-    const maskBlockStartIdx = this.getOverlappingBlockStartIdx(
+    const maskBlockStartIdx = getOverlappingBlockStartIdx(
       regionStart,
       record.maskBlocks.starts,
       record.maskBlocks.sizes,
@@ -320,29 +335,4 @@ export default class TwoBitFile {
     return sequenceParts.join('')
   }
 
-  private getOverlappingBlockStartIdx(
-    regionStart: number,
-    blockStarts: ArrayLike<number>,
-    blockSizes: ArrayLike<number>,
-  ) {
-    const len = blockStarts.length
-    if (len === 0) {
-      return 0
-    }
-
-    // Binary search for first block whose end > regionStart
-    let lo = 0
-    let hi = len
-    while (lo < hi) {
-      const mid = (lo + hi) >>> 1
-      // mid is always valid index since lo < hi <= len
-      const blockEnd = blockStarts[mid]! + blockSizes[mid]!
-      if (blockEnd <= regionStart) {
-        lo = mid + 1
-      } else {
-        hi = mid
-      }
-    }
-    return lo
-  }
 }
