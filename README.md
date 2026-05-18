@@ -11,6 +11,8 @@ Read .2bit sequence files, works in Node.js or the browser.
 
 ## Usage
 
+### Node.js — local file
+
 ```js
 import { TwoBitFile } from '@gmod/twobit'
 
@@ -24,12 +26,26 @@ const size = await t.getSequenceSize('chr1')
 const names = await t.getSequenceNames()
 ```
 
+### Browser / remote file
+
+Pass a `filehandle` from [`generic-filehandle2`](https://www.npmjs.com/package/generic-filehandle2):
+
+```js
+import { TwoBitFile } from '@gmod/twobit'
+import { RemoteFile } from 'generic-filehandle2'
+
+const t = new TwoBitFile({
+  filehandle: new RemoteFile('https://example.com/file.2bit'),
+})
+const region = await t.getSequence('chr1', 0, 10)
+```
+
 ## API
 
 ### `new TwoBitFile({ path?, filehandle? })`
 
-- `path` — filesystem path to the .2bit file
-- `filehandle` — fs.promises-like filehandle; only needs to support `read(buffer, offset, length, position)`
+- `path` — filesystem path to the .2bit file (Node.js only)
+- `filehandle` — any object implementing `read(length, position): Promise<Uint8Array>`. Typically an instance from `generic-filehandle2` (`LocalFile`, `RemoteFile`, `BlobFile`).
 
 ### `getSequenceNames()` → `Promise<string[]>`
 
@@ -47,7 +63,21 @@ Returns the length of `seqName`, or `undefined` if not found.
 
 ### `getSequence(seqName, regionStart?, regionEnd?)` → `Promise<string | undefined>`
 
-Returns sequence bases as a string, or `undefined` if `seqName` is not found. Coordinates are 0-based half-open. `regionStart` defaults to `0`, `regionEnd` defaults to end of sequence.
+Returns sequence bases as a string. Coordinates are 0-based half-open. `regionStart` defaults to `0`, `regionEnd` defaults to end of sequence.
+
+The returned string preserves the 2bit format's case/ambiguity encoding:
+
+- **Uppercase `A`/`C`/`G`/`T`** — unmasked bases
+- **Lowercase `a`/`c`/`g`/`t`** — soft-masked bases (e.g. repeats)
+- **`N`** — ambiguous base
+- **`n`** — soft-masked ambiguous base
+
+Edge cases:
+
+- Returns `undefined` if `seqName` is not found in the file
+- Returns `''` if `regionStart` is past the end of the sequence
+- `regionEnd` past the end is clamped to the sequence length
+- Throws `TypeError` if `regionStart < 0`
 
 ## Publishing
 
