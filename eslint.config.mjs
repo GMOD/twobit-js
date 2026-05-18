@@ -35,6 +35,8 @@ export default defineConfig(
     rules: {
       'no-underscore-dangle': 'off',
       curly: 'error',
+      'object-shorthand': 'error',
+      '@typescript-eslint/no-unnecessary-condition': 'error',
       eqeqeq: 'error',
       '@typescript-eslint/consistent-type-imports': 'error',
       'unicorn/text-encoding-identifier-case': 'off',
