@@ -1,3 +1,16 @@
+## [6.0.6](https://github.com/GMOD/twobit-js/compare/v6.0.5...v6.0.6) (2026-05-18)
+
+
+### Bug Fixes
+
+* add non-null assertions for noUncheckedIndexedAccess compliance ([2c89248](https://github.com/GMOD/twobit-js/commit/2c89248e316ac137b8c742da2f3157748a56b5a3))
+* handle regionStart past sequence end and clean up ([676bc7c](https://github.com/GMOD/twobit-js/commit/676bc7ccfb209aa8133f05cf0ae918977a60dd27))
+
+
+### Performance Improvements
+
+* speculative read in getSequenceRecord; drop BigInt64 polyfill ([1f85804](https://github.com/GMOD/twobit-js/commit/1f8580428f17b9bc1b74ccd39aef3b4a71aba115))
+
 ## [6.0.5](https://github.com/GMOD/twobit-js/compare/v6.0.4...v6.0.5) (2026-04-27)
 
 ## [6.0.4](https://github.com/GMOD/twobit-js/compare/v6.0.3...v6.0.4) (2026-04-27)
