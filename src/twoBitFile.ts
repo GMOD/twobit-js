@@ -16,6 +16,21 @@ for (let index = 0; index < 256; index++) {
 
 const maskedByteTo4Bases = byteTo4Bases.map(bases => bases.toLowerCase())
 
+function dataViewOf(b: Uint8Array): DataView {
+  return new DataView(b.buffer, b.byteOffset, b.length)
+}
+
+function readBlockPair(view: DataView, byteOffset: number, count: number) {
+  const aligned = new Uint32Array(count * 2)
+  for (let i = 0; i < count * 2; i++) {
+    aligned[i] = view.getUint32(byteOffset + i * 4, true)
+  }
+  return {
+    starts: aligned.subarray(0, count),
+    sizes: aligned.subarray(count),
+  }
+}
+
 export default class TwoBitFile {
   private filehandle: GenericFilehandle
   private headerP: ReturnType<typeof this.getHeaderData> | undefined
@@ -54,7 +69,7 @@ export default class TwoBitFile {
   private async getHeaderData() {
     const b = await this.filehandle.read(16, 0)
     const le = true
-    const dataView = new DataView(b.buffer, b.byteOffset, b.length)
+    const dataView = dataViewOf(b)
     let offset = 0
     const magic = dataView.getInt32(offset, le)
     offset += 4
@@ -90,7 +105,7 @@ export default class TwoBitFile {
     const b = await this.filehandle.read(maxIndexLength, 8)
 
     const le = true
-    const dataView = new DataView(b.buffer, b.byteOffset, b.length)
+    const dataView = dataViewOf(b)
     let offset = 0
     const sequenceCount = dataView.getUint32(offset, le)
     offset += 4
@@ -159,53 +174,32 @@ export default class TwoBitFile {
 
   private async getSequenceSizeAt(offset: number) {
     const b = await this.filehandle.read(4, offset)
-    const dataView = new DataView(b.buffer, b.byteOffset, b.length)
-    return dataView.getUint32(0, true)
+    return dataViewOf(b).getUint32(0, true)
   }
 
   private async getSequenceRecord(offset: number) {
-    // Speculatively grab a chunk that usually covers the entire record header
-    // in one filehandle read; refetch with exact sizes if not enough.
-    let buffer = await this.filehandle.read(4096, offset)
-    let view = new DataView(buffer.buffer, buffer.byteOffset, buffer.length)
+    const header = dataViewOf(await this.filehandle.read(8, offset))
+    const dnaSize = header.getUint32(0, true)
+    const nBlockCount = header.getUint32(4, true)
 
-    const dnaSize = view.getUint32(0, true)
-    const nBlockCount = view.getUint32(4, true)
-    const nBlocksEnd = 8 + nBlockCount * 8 + 4 // includes maskBlockCount u32
+    // nBlocks data + trailing maskBlockCount u32
+    const nLen = nBlockCount * 8 + 4
+    const nView = dataViewOf(await this.filehandle.read(nLen, offset + 8))
+    const nBlocks = readBlockPair(nView, 0, nBlockCount)
+    const maskBlockCount = nView.getUint32(nBlockCount * 8, true)
 
-    if (buffer.length < nBlocksEnd) {
-      buffer = await this.filehandle.read(nBlocksEnd + 4096, offset)
-      view = new DataView(buffer.buffer, buffer.byteOffset, buffer.length)
-    }
-
-    const maskBlockCount = view.getUint32(nBlocksEnd - 4, true)
-    const totalLen = nBlocksEnd + maskBlockCount * 8 + 4 // +4 reserved
-
-    if (buffer.length < totalLen) {
-      buffer = await this.filehandle.read(totalLen, offset)
-      view = new DataView(buffer.buffer, buffer.byteOffset, buffer.length)
-    }
-
-    const nBlocksAligned = new Uint32Array(nBlockCount * 2)
-    for (let i = 0; i < nBlockCount * 2; i++) {
-      nBlocksAligned[i] = view.getUint32(8 + i * 4, true)
-    }
-    const maskBlocksAligned = new Uint32Array(maskBlockCount * 2)
-    for (let i = 0; i < maskBlockCount * 2; i++) {
-      maskBlocksAligned[i] = view.getUint32(nBlocksEnd + i * 4, true)
-    }
+    // maskBlocks data + trailing reserved u32
+    const mLen = maskBlockCount * 8 + 4
+    const mView = dataViewOf(
+      await this.filehandle.read(mLen, offset + 8 + nLen),
+    )
+    const maskBlocks = readBlockPair(mView, 0, maskBlockCount)
 
     return {
       dnaSize,
-      nBlocks: {
-        starts: nBlocksAligned.subarray(0, nBlockCount),
-        sizes: nBlocksAligned.subarray(nBlockCount),
-      },
-      maskBlocks: {
-        starts: maskBlocksAligned.subarray(0, maskBlockCount),
-        sizes: maskBlocksAligned.subarray(maskBlockCount),
-      },
-      dnaPosition: offset + totalLen,
+      nBlocks,
+      maskBlocks,
+      dnaPosition: offset + 8 + nLen + mLen,
     }
   }
 
