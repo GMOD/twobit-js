@@ -1,7 +1,7 @@
 # @gmod/twobit
 
 [![NPM version](https://img.shields.io/npm/v/@gmod/twobit.svg?style=flat-square)](https://npmjs.org/package/@gmod/twobit)
-[![Build Status](https://img.shields.io/github/actions/workflow/status/GMOD/twobit-js/publish.yml?branch=main)](https://github.com/GMOD/twobit-js/actions)
+![Build Status](https://img.shields.io/github/actions/workflow/status/GMOD/twobit-js/publish.yml?branch=main)
 
 Read .2bit sequence files, works in Node.js or the browser.
 
