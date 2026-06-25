@@ -33,6 +33,7 @@ export default defineConfig(
   importPlugin.flatConfigs.recommended,
   {
     rules: {
+      '@typescript-eslint/parameter-properties': 'error',
       'no-underscore-dangle': 'off',
       curly: 'error',
       'object-shorthand': 'error',
