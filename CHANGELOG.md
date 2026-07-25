@@ -1,3 +1,12 @@
+## [6.0.10](https://github.com/GMOD/twobit-js/compare/v6.0.9...v6.0.10) (2026-07-25)
+
+
+### Bug Fixes
+
+* remove stale workflow query link from CI badge ([099bcf4](https://github.com/GMOD/twobit-js/commit/099bcf4de21fd3b2309b6fdcdfd57c3e47b756e0))
+* respect mask boundaries inside N blocks ([317e161](https://github.com/GMOD/twobit-js/commit/317e1616e9357b7a233680808498cfac5601ce77))
+* update CI badge to reference publish.yml workflow ([5e74f62](https://github.com/GMOD/twobit-js/commit/5e74f62b25fa084b5ab9803a86e2f784fba7d158))
+
 ## [6.0.9](https://github.com/GMOD/twobit-js/compare/v6.0.8...v6.0.9) (2026-05-19)
 
 ## [6.0.8](https://github.com/GMOD/twobit-js/compare/v6.0.7...v6.0.8) (2026-05-19)
