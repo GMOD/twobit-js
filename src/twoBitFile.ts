@@ -20,10 +20,10 @@ function dataViewOf(b: Uint8Array): DataView {
   return new DataView(b.buffer, b.byteOffset, b.length)
 }
 
-function readBlockPair(view: DataView, byteOffset: number, count: number) {
+function readBlockPair(view: DataView, count: number) {
   const aligned = new Uint32Array(count * 2)
   for (let i = 0; i < count * 2; i++) {
-    aligned[i] = view.getUint32(byteOffset + i * 4, true)
+    aligned[i] = view.getUint32(i * 4, true)
   }
   return {
     starts: aligned.subarray(0, count),
@@ -31,17 +31,21 @@ function readBlockPair(view: DataView, byteOffset: number, count: number) {
   }
 }
 
+interface Blocks {
+  starts: ArrayLike<number>
+  sizes: ArrayLike<number>
+}
+
 // binary search for first block whose end > regionStart
 function getOverlappingBlockStartIdx(
   regionStart: number,
-  blockStarts: ArrayLike<number>,
-  blockSizes: ArrayLike<number>,
+  { starts, sizes }: Blocks,
 ) {
   let lo = 0
-  let hi = blockStarts.length
+  let hi = starts.length
   while (lo < hi) {
     const mid = (lo + hi) >>> 1
-    const blockEnd = blockStarts[mid]! + blockSizes[mid]!
+    const blockEnd = starts[mid]! + sizes[mid]!
     if (blockEnd <= regionStart) {
       lo = mid + 1
     } else {
@@ -49,6 +53,27 @@ function getOverlappingBlockStartIdx(
     }
   }
   return lo
+}
+
+/**
+ * walks a sorted list of non-overlapping blocks alongside a scan of the
+ * sequence. calling the returned function with a monotonically increasing
+ * position says whether that position is inside a block, and where the next
+ * change of that state happens (block end when inside, next block start when
+ * outside, Infinity when no blocks are left)
+ */
+function makeBlockScanner(blocks: Blocks, regionStart: number) {
+  const { starts, sizes } = blocks
+  let idx = getOverlappingBlockStartIdx(regionStart, blocks)
+  return (position: number) => {
+    while (idx < starts.length && starts[idx]! + sizes[idx]! <= position) {
+      idx++
+    }
+    const start = idx < starts.length ? starts[idx]! : Infinity
+    return start <= position
+      ? { inside: true, boundary: start + sizes[idx]! }
+      : { inside: false, boundary: start }
+  }
 }
 
 export default class TwoBitFile {
@@ -59,8 +84,8 @@ export default class TwoBitFile {
   /**
    * @param {object} args
    * @param {string} [args.path] filesystem path for the .2bit file to open
-   * @param {Filehandle} [args.filehandle] node fs.promises-like filehandle for the .2bit file.
-   *  Only needs to support `filehandle.read(buffer, offset, length, position)`
+   * @param {Filehandle} [args.filehandle] filehandle for the .2bit file. Only
+   *  needs to support `filehandle.read(length, position)`
    */
   constructor({
     filehandle,
@@ -78,6 +103,10 @@ export default class TwoBitFile {
     }
   }
 
+  private async readView(length: number, position: number) {
+    return dataViewOf(await this.filehandle.read(length, position))
+  }
+
   getHeader() {
     this.headerP ??= this.getHeaderData().catch((error: unknown) => {
       this.headerP = undefined
@@ -87,26 +116,16 @@ export default class TwoBitFile {
   }
 
   private async getHeaderData() {
-    const b = await this.filehandle.read(16, 0)
-    const le = true
-    const dataView = dataViewOf(b)
-    let offset = 0
-    const magic = dataView.getInt32(offset, le)
-    offset += 4
+    const dataView = await this.readView(16, 0)
+    const magic = dataView.getInt32(0, true)
     if (magic !== 0x1a412743) {
       throw new Error(`Wrong magic number ${String(magic)}`)
     }
-    const version = dataView.getInt32(offset, le)
-    offset += 4
-    const sequenceCount = dataView.getUint32(offset, le)
-    offset += 4
-    const reserved = dataView.getUint32(offset, le)
-
     return {
-      version,
       magic,
-      sequenceCount,
-      reserved,
+      version: dataView.getInt32(4, true),
+      sequenceCount: dataView.getUint32(8, true),
+      reserved: dataView.getUint32(12, true),
     }
   }
 
@@ -119,35 +138,32 @@ export default class TwoBitFile {
   }
 
   private async getIndexData() {
-    const header = await this.getHeader()
-    const maxIndexLength =
-      8 + header.sequenceCount * (1 + 255 + (header.version === 1 ? 8 : 4))
-    const b = await this.filehandle.read(maxIndexLength, 8)
+    const { sequenceCount, version } = await this.getHeader()
+    // version 1 ("long") files use 64-bit sequence offsets, and a name is at
+    // most 255 bytes because its length is stored in a single byte
+    const offsetSize = version === 1 ? 8 : 4
+    const maxIndexLength = sequenceCount * (1 + 255 + offsetSize)
+    const b = await this.filehandle.read(maxIndexLength, 16)
 
-    const le = true
     const dataView = dataViewOf(b)
     const decoder = new TextDecoder('ascii')
-    let offset = 8 // skip sequenceCount + reserved (already known from header)
-    const indexData = []
-    for (let i = 0; i < header.sequenceCount; i++) {
+    let offset = 0
+    const entries: [name: string, offset: number][] = []
+    for (let i = 0; i < sequenceCount; i++) {
       const nameLength = dataView.getUint8(offset)
       offset += 1
       const name = decoder.decode(b.subarray(offset, offset + nameLength))
       offset += nameLength
-      if (header.version === 1) {
-        const dataOffset = Number(dataView.getBigUint64(offset, le))
-        offset += 8
-        indexData.push({ offset: dataOffset, name })
-      } else {
-        const dataOffset = dataView.getUint32(offset, le)
-        offset += 4
-        indexData.push({ offset: dataOffset, name })
-      }
+      entries.push([
+        name,
+        offsetSize === 8
+          ? Number(dataView.getBigUint64(offset, true))
+          : dataView.getUint32(offset, true),
+      ])
+      offset += offsetSize
     }
 
-    return Object.fromEntries(
-      indexData.map(({ name, offset }) => [name, offset] as const),
-    )
+    return Object.fromEntries(entries)
   }
 
   /**
@@ -188,27 +204,25 @@ export default class TwoBitFile {
   }
 
   private async getSequenceSizeAt(offset: number) {
-    const b = await this.filehandle.read(4, offset)
-    return dataViewOf(b).getUint32(0, true)
+    const view = await this.readView(4, offset)
+    return view.getUint32(0, true)
   }
 
   private async getSequenceRecord(offset: number) {
-    const header = dataViewOf(await this.filehandle.read(8, offset))
+    const header = await this.readView(8, offset)
     const dnaSize = header.getUint32(0, true)
     const nBlockCount = header.getUint32(4, true)
 
     // nBlocks data + trailing maskBlockCount u32
     const nLen = nBlockCount * 8 + 4
-    const nView = dataViewOf(await this.filehandle.read(nLen, offset + 8))
-    const nBlocks = readBlockPair(nView, 0, nBlockCount)
+    const nView = await this.readView(nLen, offset + 8)
+    const nBlocks = readBlockPair(nView, nBlockCount)
     const maskBlockCount = nView.getUint32(nBlockCount * 8, true)
 
     // maskBlocks data + trailing reserved u32
     const mLen = maskBlockCount * 8 + 4
-    const mView = dataViewOf(
-      await this.filehandle.read(mLen, offset + 8 + nLen),
-    )
-    const maskBlocks = readBlockPair(mView, 0, maskBlockCount)
+    const mView = await this.readView(mLen, offset + 8 + nLen)
+    const maskBlocks = readBlockPair(mView, maskBlockCount)
 
     return {
       dnaSize,
@@ -227,13 +241,17 @@ export default class TwoBitFile {
    * @param [regionEnd] optional 0-based half-open end of the sequence region
    * to fetch. defaults to end of the sequence
    *
-   * @returns for a string of sequence bases
+   * @returns string of sequence bases, or undefined if the sequence is not in
+   * the file
    */
   async getSequence(
     seqName: string,
     regionStart = 0,
     regionEnd = Number.POSITIVE_INFINITY,
   ) {
+    if (regionStart < 0) {
+      throw new TypeError('regionStart cannot be less than 0')
+    }
     const index = await this.getIndex()
     const offset = index[seqName]
     if (offset === undefined) {
@@ -242,77 +260,40 @@ export default class TwoBitFile {
     // fetch the record for the seq
     const record = await this.getSequenceRecord(offset)
 
-    if (regionStart < 0) {
-      throw new TypeError('regionStart cannot be less than 0')
-    }
     // end defaults to the end of the sequence
-    if (regionEnd > record.dnaSize) {
-      regionEnd = record.dnaSize
-    }
+    const end = Math.min(regionEnd, record.dnaSize)
     // if start is past end (e.g. regionStart > dnaSize), nothing to fetch
-    if (regionStart >= regionEnd) {
+    if (regionStart >= end) {
       return ''
     }
 
-    const nBlockStartIdx = getOverlappingBlockStartIdx(
-      regionStart,
-      record.nBlocks.starts,
-      record.nBlocks.sizes,
-    )
-    const maskBlockStartIdx = getOverlappingBlockStartIdx(
-      regionStart,
-      record.maskBlocks.starts,
-      record.maskBlocks.sizes,
-    )
-
-    const baseBytesLen = Math.ceil((regionEnd - regionStart) / 4) + 1
+    const baseBytesLen = Math.ceil((end - regionStart) / 4) + 1
     const baseBytesOffset = Math.floor(regionStart / 4)
     const buffer = await this.filehandle.read(
       baseBytesLen,
       record.dnaPosition + baseBytesOffset,
     )
 
-    const nBlockStarts = record.nBlocks.starts
-    const nBlockSizes = record.nBlocks.sizes
-    const maskBlockStarts = record.maskBlocks.starts
-    const maskBlockSizes = record.maskBlocks.sizes
+    const scanN = makeBlockScanner(record.nBlocks, regionStart)
+    const scanMask = makeBlockScanner(record.maskBlocks, regionStart)
 
     const sequenceParts: string[] = []
-    let nBlockIdx = nBlockStartIdx
-    let maskBlockIdx = maskBlockStartIdx
     let genomicPosition = regionStart
 
-    while (genomicPosition < regionEnd) {
-      // advance past mask blocks that end before current position
-      while (
-        maskBlockIdx < maskBlockStarts.length &&
-        maskBlockStarts[maskBlockIdx]! + maskBlockSizes[maskBlockIdx]! <=
-          genomicPosition
-      ) {
-        maskBlockIdx++
-      }
-      const maskStart = maskBlockStarts[maskBlockIdx] ?? Infinity
-      const maskEnd = maskStart + (maskBlockSizes[maskBlockIdx] ?? 0)
-      const baseIsMasked =
-        maskStart <= genomicPosition && maskEnd > genomicPosition
+    while (genomicPosition < end) {
+      const n = scanN(genomicPosition)
+      const mask = scanMask(genomicPosition)
+      // the run of bases we can emit in one style, stopping wherever the N
+      // state or the mask state next changes
+      const runEnd = Math.min(end, n.boundary, mask.boundary)
 
-      // process the N block if we have one
-      const nStart = nBlockStarts[nBlockIdx] ?? Infinity
-      const nEnd = nStart + (nBlockSizes[nBlockIdx] ?? 0)
-      if (genomicPosition >= nStart && genomicPosition < nEnd) {
-        nBlockIdx++
-        const effectiveEnd = Math.min(nEnd, regionEnd)
-        const nCount = effectiveEnd - genomicPosition
-        sequenceParts.push((baseIsMasked ? 'n' : 'N').repeat(nCount))
-        genomicPosition = effectiveEnd
+      if (n.inside) {
+        sequenceParts.push(
+          (mask.inside ? 'n' : 'N').repeat(runEnd - genomicPosition),
+        )
+        genomicPosition = runEnd
       } else {
-        // find how far we can go before hitting a block boundary or mask change
-        const nextNStart = nBlockStarts[nBlockIdx] ?? Infinity
-        const runEnd = baseIsMasked
-          ? Math.min(maskEnd, nextNStart, regionEnd)
-          : Math.min(maskStart, nextNStart, regionEnd)
-
-        const lookup = baseIsMasked ? maskedByteTo4Bases : byteTo4Bases
+        const lookup = mask.inside ? maskedByteTo4Bases : byteTo4Bases
 
         // process bases up to runEnd using bitwise ops for speed
         while (genomicPosition < runEnd) {
@@ -334,5 +315,4 @@ export default class TwoBitFile {
 
     return sequenceParts.join('')
   }
-
 }

@@ -1,6 +1,65 @@
+import { BlobFile } from 'generic-filehandle2'
 import { expect, test } from 'vitest'
 
 import { TwoBitFile } from '../src/index.ts'
+
+// builds an in-memory .2bit file with a single sequence
+function makeTwoBit({
+  bases,
+  nBlocks,
+  maskBlocks,
+}: {
+  bases: string
+  nBlocks: [start: number, end: number][]
+  maskBlocks: [start: number, end: number][]
+}) {
+  const name = 'chr1'
+  const dnaBytes = Math.ceil(bases.length / 4)
+  const recordOffset = 16 + 1 + name.length + 4
+  const buf = new Uint8Array(
+    recordOffset +
+      4 +
+      4 +
+      nBlocks.length * 8 +
+      4 +
+      maskBlocks.length * 8 +
+      4 +
+      dnaBytes,
+  )
+  const view = new DataView(buf.buffer)
+  view.setUint32(0, 0x1a412743, true)
+  view.setInt32(4, 0, true) // version
+  view.setUint32(8, 1, true) // sequenceCount
+  let p = 16
+  buf[p++] = name.length
+  for (const ch of name) {
+    buf[p++] = ch.codePointAt(0)!
+  }
+  view.setUint32(p, recordOffset, true)
+
+  p = recordOffset
+  view.setUint32(p, bases.length, true)
+  p += 4
+  for (const blocks of [nBlocks, maskBlocks]) {
+    view.setUint32(p, blocks.length, true)
+    p += 4
+    for (const [start] of blocks) {
+      view.setUint32(p, start, true)
+      p += 4
+    }
+    for (const [start, blockEnd] of blocks) {
+      view.setUint32(p, blockEnd - start, true)
+      p += 4
+    }
+  }
+  view.setUint32(p, 0, true) // reserved
+  p += 4
+  const baseCodes: Record<string, number> = { T: 0, C: 1, A: 2, G: 3 }
+  for (const [i, base] of Array.from(bases).entries()) {
+    buf[p + (i >> 2)]! |= baseCodes[base]! << (6 - (i & 3) * 2)
+  }
+  return new TwoBitFile({ filehandle: new BlobFile(new Blob([buf])) })
+}
 
 test('loads some small bits of data from foo.2bit', async () => {
   const t = new TwoBitFile({
@@ -224,6 +283,34 @@ test('volvox ctgB first 100 bases match expected', async () => {
   expect(seq).toBe(
     'ACATGCTAGCTACGTGCATGCTCGACATGCATCATCAGCCTGATGCTGATACATGCTAGCTACGTGCATGCTCGACATGCATCATCAGCCTGATGCTGAT',
   )
+})
+
+test('mask blocks that partially overlap N blocks', async () => {
+  // N block 4-12 is masked only over 4-8, so its second half stays uppercase
+  const t = makeTwoBit({
+    bases: 'TCAGTCAGTCAGTCAG',
+    nBlocks: [[4, 12]],
+    maskBlocks: [[0, 8]],
+  })
+  expect(await t.getSequence('chr1')).toBe('tcagnnnnNNNNTCAG')
+
+  // mask starting inside an N block
+  const t2 = makeTwoBit({
+    bases: 'TCAGTCAGTCAGTCAG',
+    nBlocks: [[0, 8]],
+    maskBlocks: [[4, 16]],
+  })
+  expect(await t2.getSequence('chr1')).toBe('NNNNnnnntcagtcag')
+})
+
+test('long (version 1) file sequences match the short version', async () => {
+  const t = new TwoBitFile({ path: 'test/data/volvox.2bit' })
+  const tLong = new TwoBitFile({ path: 'test/data/volvox.long.2bit' })
+  expect(await tLong.getSequence('ctgA', 0, 200)).toBe(
+    await t.getSequence('ctgA', 0, 200),
+  )
+  expect(await tLong.getSequence('ctgB')).toBe(await t.getSequence('ctgB'))
+  expect(await tLong.getSequenceNames()).toEqual(['ctgA', 'ctgB'])
 })
 
 test('T_ko first 100 bases match expected', async () => {
