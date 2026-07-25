@@ -9,6 +9,7 @@
     "url": "https://github.com/GMOD/twobit-js.git"
   },
   "type": "module",
+  "sideEffects": false,
   "exports": {
     "import": "./esm/index.js",
     "require": "./dist/index.js"
