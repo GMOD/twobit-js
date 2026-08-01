@@ -1,3 +1,27 @@
+## [6.0.11](https://github.com/GMOD/twobit-js/compare/v6.0.10...v6.0.11) (2026-08-01)
+
+### Bug Fixes
+
+- Build-both-branches.sh used yarn and defaulted to a master branch
+
+### Chores
+
+- Sha-pin actions, take pnpm version from packageManager, node 24
+- Pin pnpm via the `packageManager` field, so local pnpm and CI agree
+- Share one eslint-plugin-unicorn opt-out list across the repos
+- Turn off unicorn/prefer-early-return across the repos
+- Replace standard-changelog with git-cliff for changelog generation
+- Drop unused documentation tooling and the dead es5 tsconfig
+
+### Documentation
+
+- Mark breaking changes in the generated changelog
+- Correct release instructions and note getSequenceSizes' read count
+
+### Refactoring
+
+- Extract a once() memo helper, tighten types and the magic error
+
 ## [6.0.10](https://github.com/GMOD/twobit-js/compare/v6.0.9...v6.0.10) (2026-07-25)
 
 
