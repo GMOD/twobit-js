@@ -1,4 +1,4 @@
-import { BlobFile } from 'generic-filehandle2'
+import { BlobFile, LocalFile } from 'generic-filehandle2'
 import { expect, test } from 'vitest'
 
 import { TwoBitFile } from '../src/index.ts'
@@ -60,6 +60,31 @@ function makeTwoBit({
   }
   return new TwoBitFile({ filehandle: new BlobFile(new Blob([buf])) })
 }
+
+test('rejects a file with a bad magic number', async () => {
+  const buf = new Uint8Array(16)
+  new DataView(buf.buffer).setUint32(0, 0x4327411a, true) // byte-swapped magic
+  const t = new TwoBitFile({ filehandle: new BlobFile(new Blob([buf])) })
+  await expect(t.getHeader()).rejects.toThrow('Wrong magic number 0x4327411a')
+})
+
+test('a failed header read can be retried', async () => {
+  class FlakyFile extends LocalFile {
+    failing = true
+    override async read(length: number, position: number) {
+      if (this.failing) {
+        throw new Error('network blip')
+      }
+      return super.read(length, position)
+    }
+  }
+  const filehandle = new FlakyFile('test/data/foo.2bit')
+  const t = new TwoBitFile({ filehandle })
+
+  await expect(t.getSequenceNames()).rejects.toThrow('network blip')
+  filehandle.failing = false
+  expect(await t.getSequenceNames()).toEqual(['chr1'])
+})
 
 test('loads some small bits of data from foo.2bit', async () => {
   const t = new TwoBitFile({

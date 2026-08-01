@@ -17,7 +17,22 @@ for (let index = 0; index < 256; index++) {
 const maskedByteTo4Bases = byteTo4Bases.map(bases => bases.toLowerCase())
 
 function dataViewOf(b: Uint8Array): DataView {
-  return new DataView(b.buffer, b.byteOffset, b.length)
+  return new DataView(b.buffer, b.byteOffset, b.byteLength)
+}
+
+/**
+ * memoizes an async loader, keeping the promise so concurrent callers share one
+ * read, and clearing it on failure so a later call can retry
+ */
+function once<T>(load: () => Promise<T>) {
+  let promise: Promise<T> | undefined
+  return () => {
+    promise ??= load().catch((error: unknown) => {
+      promise = undefined
+      throw error
+    })
+    return promise
+  }
 }
 
 function readBlockPair(view: DataView, count: number) {
@@ -31,10 +46,7 @@ function readBlockPair(view: DataView, count: number) {
   }
 }
 
-interface Blocks {
-  starts: ArrayLike<number>
-  sizes: ArrayLike<number>
-}
+type Blocks = ReturnType<typeof readBlockPair>
 
 // binary search for first block whose end > regionStart
 function getOverlappingBlockStartIdx(
@@ -78,14 +90,11 @@ function makeBlockScanner(blocks: Blocks, regionStart: number) {
 
 export default class TwoBitFile {
   private filehandle: GenericFilehandle
-  private headerP: ReturnType<typeof this.getHeaderData> | undefined
-  private indexP: ReturnType<typeof this.getIndexData> | undefined
 
   /**
-   * @param {object} args
-   * @param {string} [args.path] filesystem path for the .2bit file to open
-   * @param {Filehandle} [args.filehandle] filehandle for the .2bit file. Only
-   *  needs to support `filehandle.read(length, position)`
+   * @param path filesystem path for the .2bit file to open
+   * @param filehandle filehandle for the .2bit file. Only needs to support
+   *  `filehandle.read(length, position)`
    */
   constructor({
     filehandle,
@@ -107,19 +116,11 @@ export default class TwoBitFile {
     return dataViewOf(await this.filehandle.read(length, position))
   }
 
-  getHeader() {
-    this.headerP ??= this.getHeaderData().catch((error: unknown) => {
-      this.headerP = undefined
-      throw error
-    })
-    return this.headerP
-  }
-
-  private async getHeaderData() {
+  getHeader = once(async () => {
     const dataView = await this.readView(16, 0)
-    const magic = dataView.getInt32(0, true)
+    const magic = dataView.getUint32(0, true)
     if (magic !== 0x1a412743) {
-      throw new Error(`Wrong magic number ${String(magic)}`)
+      throw new Error(`Wrong magic number 0x${magic.toString(16)}`)
     }
     return {
       magic,
@@ -127,17 +128,9 @@ export default class TwoBitFile {
       sequenceCount: dataView.getUint32(8, true),
       reserved: dataView.getUint32(12, true),
     }
-  }
+  })
 
-  getIndex() {
-    this.indexP ??= this.getIndexData().catch((error: unknown) => {
-      this.indexP = undefined
-      throw error
-    })
-    return this.indexP
-  }
-
-  private async getIndexData() {
+  getIndex = once(async () => {
     const { sequenceCount, version } = await this.getHeader()
     // version 1 ("long") files use 64-bit sequence offsets, and a name is at
     // most 255 bytes because its length is stored in a single byte
@@ -164,7 +157,7 @@ export default class TwoBitFile {
     }
 
     return Object.fromEntries(entries)
-  }
+  })
 
   /**
    * @returns array of sequence names in the file
@@ -177,9 +170,11 @@ export default class TwoBitFile {
   /**
    * @returns object listing the lengths of all sequences like `{seqName: length, ...}`.
    *
-   * note: this is a relatively slow operation especially if there are many
-   * refseqs in the file, if you can get this information from a different file
-   * e.g. a chrom.sizes file, it will be much faster
+   * note: this issues one read per sequence, all in parallel, so it is a
+   * relatively slow operation especially if there are many refseqs in the file
+   * (and especially over a remote filehandle, where each read is a request). if
+   * you can get this information from a different file e.g. a chrom.sizes file,
+   * it will be much faster
    */
   async getSequenceSizes() {
     const index = await this.getIndex()
