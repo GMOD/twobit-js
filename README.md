@@ -55,7 +55,8 @@ Returns all sequence names in the file.
 
 Returns all sequence lengths as `{ seqName: length, ... }`.
 
-Note: slow if there are many sequences — prefer a chrom.sizes file if available.
+Note: issues one read per sequence, so it is slow if there are many sequences —
+prefer a chrom.sizes file if available.
 
 ### `getSequenceSize(seqName)` → `Promise<number | undefined>`
 
