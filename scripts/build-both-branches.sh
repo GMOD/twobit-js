@@ -1,29 +1,31 @@
 #!/bin/bash
 
+# Builds two branches side by side into esm_branch1/ and esm_branch2/ so
+# `pnpm benchonly` can compare them. Uses git worktrees rather than switching
+# branches, so the checkout is left untouched.
+
 set -e
 
+REPO_ROOT=$(git rev-parse --show-toplevel)
 CURRENT_BRANCH=$(git branch --show-current)
-BRANCH1="${1:-master}"
+BRANCH1="${1:-main}"
 BRANCH2="${2:-$CURRENT_BRANCH}"
 
-if ! git diff --quiet || ! git diff --cached --quiet; then
-  echo "Error: Uncommitted changes detected. Please commit or stash your changes first."
-  exit 1
-fi
-rm -rf esm_branch1 esm_branch2
+TMP_DIR=$(mktemp -d)
+trap 'git worktree remove --force "$TMP_DIR/b1" 2>/dev/null; git worktree remove --force "$TMP_DIR/b2" 2>/dev/null; rm -rf "$TMP_DIR"' EXIT
 
-git checkout "$BRANCH1"
-yarn
-yarn build
-mv esm esm_branch1
-echo "$BRANCH1" >esm_branch1/branchname.txt
+build_branch() {
+  local branch=$1 worktree=$2 out=$3
+  echo "Building $branch..."
+  git worktree add --detach "$worktree" "$branch" >/dev/null
+  (cd "$worktree" && pnpm install --frozen-lockfile && pnpm build:esm)
+  rm -rf "${REPO_ROOT:?}/$out"
+  mv "$worktree/esm" "$REPO_ROOT/$out"
+  echo "$branch" >"$REPO_ROOT/$out/branchname.txt"
+}
 
-echo "Building $BRANCH2 branch..."
-git checkout "$BRANCH2"
-yarn
-yarn build
-mv esm esm_branch2
-echo "$BRANCH2" >esm_branch2/branchname.txt
+build_branch "$BRANCH1" "$TMP_DIR/b1" esm_branch1
+build_branch "$BRANCH2" "$TMP_DIR/b2" esm_branch2
 
 echo "Build complete!"
 echo "$BRANCH1 build: esm_branch1/index.js"
