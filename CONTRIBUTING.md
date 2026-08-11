@@ -15,3 +15,8 @@ Use `pnpm version patch/minor/major` to release — it runs lint, tests, and bui
 Releases publish automatically via GitHub Actions using npm trusted publishing (OIDC, no stored token). The publish job needs `id-token: write` permissions; npm attaches provenance automatically under trusted publishing.
 
 This repo is already configured. To set up a new package: `npm trust github <pkg> --file publish.yml --repo GMOD/<repo>` (requires npm >=11.10.0 and 2FA).
+
+Once npm publish succeeds, the `release` job creates the GitHub release for the
+tag. Its notes are that version's CHANGELOG.md section, extracted by
+`scripts/release-notes.sh` — run that with a version to preview what a release
+will say.
