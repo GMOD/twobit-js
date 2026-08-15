@@ -11,8 +11,10 @@ export default defineConfig(
       'esm_*/*',
       '*.js',
       '*.mjs',
-      'example/*',
-      'src/htscodecs',
+      // the benchmarks import esm_branch1/ and esm_branch2/, which
+      // scripts/build-both-branches.sh generates from two arbitrary branches.
+      // They are absent in a clean checkout, so neither eslint nor
+      // tsconfig.lint.json can resolve this file — keep it out of both.
       'benchmarks/*',
       // agent worktrees are whole checkouts of this repo living inside it, so
       // without this eslint lints every one of them against the root
