@@ -1,31 +1,44 @@
 #!/bin/bash
 
-# Builds two branches side by side into esm_branch1/ and esm_branch2/ so
-# `pnpm benchonly` can compare them. Uses git worktrees rather than switching
-# branches, so the checkout is left untouched.
+# Builds two refs into esm_branch1/ and esm_branch2/, which the comparison
+# benchmark imports side by side.
+#
+# Each ref is built in a throwaway git worktree rather than by checking it out
+# here, so the checkout you are sitting in is never switched and your local
+# edits are left alone. That also means what gets benchmarked is each ref as
+# committed - uncommitted work in this tree is not part of it.
 
-set -e
+set -euo pipefail
 
-REPO_ROOT=$(git rev-parse --show-toplevel)
-CURRENT_BRANCH=$(git branch --show-current)
-BRANCH1="${1:-main}"
-BRANCH2="${2:-$CURRENT_BRANCH}"
+BRANCH1="${1:-origin/main}"
+BRANCH2="${2:-$(git rev-parse --abbrev-ref HEAD)}"
 
-TMP_DIR=$(mktemp -d)
-trap 'git worktree remove --force "$TMP_DIR/b1" 2>/dev/null; git worktree remove --force "$TMP_DIR/b2" 2>/dev/null; rm -rf "$TMP_DIR"' EXIT
+ROOT=$(git rev-parse --show-toplevel)
+SCRATCH=$(mktemp -d)
+cleanup() {
+  for wt in "$SCRATCH"/*; do
+    [ -d "$wt" ] && git worktree remove --force "$wt" 2>/dev/null
+  done
+  rm -rf "$SCRATCH"
+}
+trap cleanup EXIT
 
-build_branch() {
-  local branch=$1 worktree=$2 out=$3
-  echo "Building $branch..."
-  git worktree add --detach "$worktree" "$branch" >/dev/null
-  (cd "$worktree" && pnpm install --frozen-lockfile && pnpm build:esm)
-  rm -rf "${REPO_ROOT:?}/$out"
-  mv "$worktree/esm" "$REPO_ROOT/$out"
-  echo "$branch" >"$REPO_ROOT/$out/branchname.txt"
+if ! git diff --quiet || ! git diff --cached --quiet; then
+  echo "Note: uncommitted changes in this tree are not benchmarked." >&2
+fi
+
+build() {
+  local ref=$1 out=$2 wt="$SCRATCH/$2"
+  echo "Building $ref..."
+  git worktree add --quiet --detach "$wt" "$ref"
+  (cd "$wt" && pnpm install --frozen-lockfile --prefer-offline && pnpm build:esm)
+  rm -rf "${ROOT:?}/$out"
+  mv "$wt/esm" "$ROOT/$out"
+  echo "$ref" >"$ROOT/$out/branchname.txt"
 }
 
-build_branch "$BRANCH1" "$TMP_DIR/b1" esm_branch1
-build_branch "$BRANCH2" "$TMP_DIR/b2" esm_branch2
+build "$BRANCH1" esm_branch1
+build "$BRANCH2" esm_branch2
 
 echo "Build complete!"
 echo "$BRANCH1 build: esm_branch1/index.js"
