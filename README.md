@@ -36,6 +36,12 @@ const t = new TwoBitFile({
 })
 ```
 
+Reading a sequence over HTTP takes several short reads — the index, the record
+header, then the packed bases — so a byte-range cache such as
+[`@gmod/range-cache-filehandle`](https://github.com/GMOD/range-cache-filehandle)
+is a cheap swap for `RemoteFile`: it coalesces those into one request per
+contiguous run, and repeated reads of the same region cost nothing.
+
 Returned sequences preserve the file's encoding: lowercase for soft-masked
 bases, `N`/`n` for ambiguous ones.
 
