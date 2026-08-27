@@ -36,11 +36,14 @@ const t = new TwoBitFile({
 })
 ```
 
-Reading a sequence over HTTP takes several short reads — the index, the record
-header, then the packed bases — so a byte-range cache such as
+Reading a sequence takes four reads: the record header and its two block
+tables, which come to 32 bytes and sit at the same offsets every time you read
+that sequence, then the packed bases. Over HTTP that is four round trips per
+sequence, so a byte-range cache such as
 [`@gmod/range-cache-filehandle`](https://github.com/GMOD/range-cache-filehandle)
-is a cheap swap for `RemoteFile`: it coalesces those into one request per
-contiguous run, and repeated reads of the same region cost nothing.
+is a cheap swap for `RemoteFile`. It serves reads out of 256 KiB chunks, so the
+header reads come from memory after the first one and neighboring sequences
+share a request.
 
 Returned sequences preserve the file's encoding: lowercase for soft-masked
 bases, `N`/`n` for ambiguous ones.
