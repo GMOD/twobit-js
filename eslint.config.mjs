@@ -8,6 +8,8 @@ export default defineConfig(
     ignores: [
       'esm/**/*',
       'dist/**/*',
+      // gitignored, and eslint does not read .gitignore
+      'coverage/**',
       'esm_*/*',
       '*.js',
       '*.mjs',
