@@ -89,6 +89,10 @@ function makeBlockScanner(blocks: Blocks, regionStart: number) {
 }
 
 const TYPICAL_NAME_LENGTH = 16
+// a name's length is one byte
+const MAX_NAME_LENGTH = 255
+// above the largest record (1 + 255 + 8), so a read that parses no record is
+// the end of the file
 const MIN_INDEX_READ = 4096
 
 export default class TwoBitFile {
@@ -140,15 +144,20 @@ export default class TwoBitFile {
     const decoder = new TextDecoder('ascii')
     const entries: [name: string, offset: number][] = []
     let position = 16
+    // every record sits after the index, so the smallest record offset read
+    // so far bounds where the index ends; the first read has none and is
+    // sized for typical names
+    let firstRecord = Infinity
     while (entries.length < sequenceCount) {
-      // A name's length is one byte, so the index has no size of its own to
-      // read; it is sized for typical names, and longer ones cost another
-      // read from the record the last one cut. Sizing it for 255-byte names
-      // read 118 MB of a 315k-scaffold assembly's index.
       const remaining = sequenceCount - entries.length
       const b = await this.filehandle.read(
         Math.max(
-          remaining * (1 + TYPICAL_NAME_LENGTH + offsetSize),
+          Number.isFinite(firstRecord) && firstRecord > position
+            ? Math.min(
+                firstRecord - position,
+                remaining * (1 + MAX_NAME_LENGTH + offsetSize),
+              )
+            : remaining * (1 + TYPICAL_NAME_LENGTH + offsetSize),
           MIN_INDEX_READ,
         ),
         position,
@@ -165,12 +174,12 @@ export default class TwoBitFile {
           b.subarray(offset + 1, offset + 1 + nameLength),
         )
         const offsetAt = offset + 1 + nameLength
-        entries.push([
-          name,
+        const recordOffset =
           offsetSize === 8
             ? Number(dataView.getBigUint64(offsetAt, true))
-            : dataView.getUint32(offsetAt, true),
-        ])
+            : dataView.getUint32(offsetAt, true)
+        entries.push([name, recordOffset])
+        firstRecord = Math.min(firstRecord, recordOffset)
         offset += recordLength
       }
       if (offset === 0) {

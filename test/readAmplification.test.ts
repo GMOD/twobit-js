@@ -93,16 +93,16 @@ describe('what getIndex reads', () => {
     expect(bytes).toBeLessThan(100_000 * 32)
   })
 
-  it('reads on from the record a chunk cut when names run long', async () => {
+  // the first chunk's records say where the first record starts, and every
+  // record sits after the index, so the second read reaches the index's end
+  it('reads on from the record a chunk cut when names run long, in one more read', async () => {
     const { names, buf } = manyEmptySequences(500, i =>
       `${String(i)}_`.padEnd(200 + (i % 50), 'x'),
     )
     const filehandle = new CountingBlob(new Blob([buf]))
     const file = new TwoBitFile({ filehandle })
     expect(await file.getSequenceNames()).toEqual(names)
-    expect(
-      filehandle.reads.filter(r => r.position >= 16).length,
-    ).toBeGreaterThan(1)
+    expect(filehandle.reads.filter(r => r.position >= 16)).toHaveLength(2)
     expect(await file.getSequenceSize(names.at(-1)!)).toBe(0)
   })
 
