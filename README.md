@@ -43,7 +43,10 @@ sequence, so a byte-range cache such as
 [`@gmod/range-cache-filehandle`](https://github.com/GMOD/range-cache-filehandle)
 is a cheap swap for `RemoteFile`. It serves reads out of 256 KiB chunks, so the
 header reads come from memory after the first one and neighboring sequences
-share a request.
+share a request. The index is read once, in chunks sized for typical
+sequence names, so a scaffold-level assembly with hundreds of thousands of
+sequences costs a few megabytes rather than a read sized for the longest name
+the format allows.
 
 Returned sequences preserve the file's encoding: lowercase for soft-masked
 bases, `N`/`n` for ambiguous ones.

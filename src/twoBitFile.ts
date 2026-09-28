@@ -88,6 +88,9 @@ function makeBlockScanner(blocks: Blocks, regionStart: number) {
   }
 }
 
+const TYPICAL_NAME_LENGTH = 16
+const MIN_INDEX_READ = 4096
+
 export default class TwoBitFile {
   private filehandle: GenericFilehandle
 
@@ -132,28 +135,50 @@ export default class TwoBitFile {
 
   getIndex = once(async () => {
     const { sequenceCount, version } = await this.getHeader()
-    // version 1 ("long") files use 64-bit sequence offsets, and a name is at
-    // most 255 bytes because its length is stored in a single byte
+    // version 1 ("long") files use 64-bit sequence offsets
     const offsetSize = version === 1 ? 8 : 4
-    const maxIndexLength = sequenceCount * (1 + 255 + offsetSize)
-    const b = await this.filehandle.read(maxIndexLength, 16)
-
-    const dataView = dataViewOf(b)
     const decoder = new TextDecoder('ascii')
-    let offset = 0
     const entries: [name: string, offset: number][] = []
-    for (let i = 0; i < sequenceCount; i++) {
-      const nameLength = dataView.getUint8(offset)
-      offset += 1
-      const name = decoder.decode(b.subarray(offset, offset + nameLength))
-      offset += nameLength
-      entries.push([
-        name,
-        offsetSize === 8
-          ? Number(dataView.getBigUint64(offset, true))
-          : dataView.getUint32(offset, true),
-      ])
-      offset += offsetSize
+    let position = 16
+    while (entries.length < sequenceCount) {
+      // A name's length is one byte, so the index has no size of its own to
+      // read; it is sized for typical names, and longer ones cost another
+      // read from the record the last one cut. Sizing it for 255-byte names
+      // read 118 MB of a 315k-scaffold assembly's index.
+      const remaining = sequenceCount - entries.length
+      const b = await this.filehandle.read(
+        Math.max(
+          remaining * (1 + TYPICAL_NAME_LENGTH + offsetSize),
+          MIN_INDEX_READ,
+        ),
+        position,
+      )
+      const dataView = dataViewOf(b)
+      let offset = 0
+      while (entries.length < sequenceCount && offset < b.length) {
+        const nameLength = b[offset]!
+        const recordLength = 1 + nameLength + offsetSize
+        if (offset + recordLength > b.length) {
+          break
+        }
+        const name = decoder.decode(
+          b.subarray(offset + 1, offset + 1 + nameLength),
+        )
+        const offsetAt = offset + 1 + nameLength
+        entries.push([
+          name,
+          offsetSize === 8
+            ? Number(dataView.getBigUint64(offsetAt, true))
+            : dataView.getUint32(offsetAt, true),
+        ])
+        offset += recordLength
+      }
+      if (offset === 0) {
+        throw new Error(
+          `.2bit index ends at byte ${String(position)} with ${String(remaining)} of ${String(sequenceCount)} sequences unread`,
+        )
+      }
+      position += offset
     }
 
     return Object.fromEntries(entries)
