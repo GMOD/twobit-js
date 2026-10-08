@@ -1,6 +1,6 @@
 {
   "name": "@gmod/twobit",
-  "version": "6.0.12",
+  "version": "6.0.13",
   "packageManager": "pnpm@11.15.1",
   "description": "Read .2bit files in node or webpack",
   "license": "MIT",

@@ -1,3 +1,32 @@
+## [6.0.13](https://github.com/GMOD/twobit-js/compare/v6.0.12...v6.0.13) (2026-10-08)
+
+### Bug Fixes
+
+- Size the index read by typical names, not by the longest a name can be ([e908bff](https://github.com/GMOD/twobit-js/commit/e908bff8479436827e54da1f5f4c97c97f78898f))
+- The second index read reaches the first record, so long names cost one more read ([d7d1310](https://github.com/GMOD/twobit-js/commit/d7d13103970bec14d113a0a560bb13136a25d283))
+
+### Chores
+
+- Render only the commit subject, and link the commit ([46333cd](https://github.com/GMOD/twobit-js/commit/46333cd7afc4869102e95c87120b24645dcbacbc))
+- Create a GitHub release for each published tag ([0f6c317](https://github.com/GMOD/twobit-js/commit/0f6c317ffb28b38f116eb585c248f5d5e632b2fe))
+- Enforce type strippability in tsconfig ([306a403](https://github.com/GMOD/twobit-js/commit/306a40392fb897f8da3c8b47ed66d63642b163b6))
+- Keep agent worktrees out of the toolchain's way ([121b86d](https://github.com/GMOD/twobit-js/commit/121b86da8202bdc7e8c26498a6c6b762e0384c46))
+- Drop dead eslint ignores, and clean the bench build dirs ([3add5ff](https://github.com/GMOD/twobit-js/commit/3add5ffae1d28b55c62c42d72f4d7c52413cc036))
+- Align the bench script with the other repos ([ef03c17](https://github.com/GMOD/twobit-js/commit/ef03c17d96ade1f8dfa15a192d37a6b88449743f))
+
+### Documentation
+
+- Trim the README and move the API reference to docs/api.md ([ad9d372](https://github.com/GMOD/twobit-js/commit/ad9d37206311be6301a8a140033701203b1160f3))
+- Put the API prose in the active voice ([11cd6e3](https://github.com/GMOD/twobit-js/commit/11cd6e3346a7ae48b282dcbec40b5e5af65c62ba))
+- Correct the release command in CONTRIBUTING, and its voice ([5661dd4](https://github.com/GMOD/twobit-js/commit/5661dd47211e0b8223c0936b51fcad6faea59343))
+- Describe the release gate CONTRIBUTING actually runs ([ce23a11](https://github.com/GMOD/twobit-js/commit/ce23a111f5878c82023ecc091426cdeb33b58c09))
+- Suggest @gmod/range-cache-filehandle for remote files ([f71377f](https://github.com/GMOD/twobit-js/commit/f71377f485ef3b697c9df7040f1b399d1d426829))
+- Say what the read pattern actually is before recommending the range cache ([176f1d1](https://github.com/GMOD/twobit-js/commit/176f1d11f7eb77702c4f31aec0499c1f278e48bd))
+
+### Tests
+
+- Assert the read pattern the README describes ([afd0811](https://github.com/GMOD/twobit-js/commit/afd0811aa3adcc58a468b465e2ba9bb587fb659b))
+
 ## [6.0.12](https://github.com/GMOD/twobit-js/compare/v6.0.11...v6.0.12) (2026-08-10)
 
 ### Chores
