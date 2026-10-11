@@ -1,5 +1,7 @@
 # API
 
+The package exports one class, `TwoBitFile`.
+
 All coordinates are 0-based half-open.
 
 ## `new TwoBitFile({ path?, filehandle? })`
