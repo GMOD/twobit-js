@@ -1,3 +1,9 @@
+## [6.0.14](https://github.com/GMOD/twobit-js/compare/v6.0.13...v6.0.14) (2026-10-11)
+
+### Tests
+
+- Fail when docs/api.md misses a public member or export ([4593b73](https://github.com/GMOD/twobit-js/commit/4593b73ad3e45685eb1edb98639b3d4ea8773699))
+
 ## [6.0.13](https://github.com/GMOD/twobit-js/compare/v6.0.12...v6.0.13) (2026-10-08)
 
 ### Bug Fixes
