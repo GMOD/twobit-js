@@ -19,11 +19,15 @@ is internal.
 
 ## Publishing
 
-Releases publish automatically via GitHub Actions using npm trusted publishing (OIDC, no stored token). The publish job needs `id-token: write` permissions; npm attaches provenance automatically under trusted publishing.
+GitHub Actions publishes each release to npm with trusted publishing (OIDC, no
+stored token). The publish job needs `id-token: write` permissions, and under
+trusted publishing npm attaches provenance automatically.
 
-This repo is already configured. To set up a new package: `npm trust github <pkg> --file publish.yml --repo GMOD/<repo>` (requires npm >=11.10.0 and 2FA).
+twobit-js is already configured for trusted publishing. To set up a new package,
+run `npm trust github <pkg> --file publish.yml --repo GMOD/<repo>` (requires
+npm >=11.10.0 and 2FA).
 
 Once npm publish succeeds, the `release` job creates the GitHub release for the
-tag, taking its notes from that version's CHANGELOG.md section — which
-`scripts/release-notes.sh` extracts, so run that with a version to preview what
-a release will say.
+tag, with that version's CHANGELOG.md section as its notes.
+`scripts/release-notes.sh` extracts the section, so run the script with a
+version to preview a release's notes.

@@ -22,9 +22,9 @@ All sequence names in the file, in index order.
 
 All sequence lengths as `{ seqName: length, ... }`.
 
-This issues one read per sequence, in parallel, so it runs slowly on a file with
-many sequences — especially over a remote filehandle, where every read costs a
-request. Prefer a chrom.sizes file if you have one.
+`getSequenceSizes()` issues one read per sequence, in parallel, so it is slow on
+a file with many sequences, and slowest over a remote filehandle, where every
+read is a separate request. Prefer a chrom.sizes file if you have one.
 
 ## `getSequenceSize(seqName)` → `Promise<number | undefined>`
 
