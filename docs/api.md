@@ -12,7 +12,10 @@ All coordinates are 0-based half-open.
 
 Throws if you pass neither. It reads both version 0 and version 1 ("long",
 64-bit offsets) files, and reads the header and sequence index once, sharing
-them with every later call.
+them with every later call. It reads the index in chunks sized for typical
+sequence names, so a scaffold-level assembly with hundreds of thousands of
+sequences costs a few megabytes rather than a read sized for the longest name
+the format allows.
 
 ## `getSequenceNames()` → `Promise<string[]>`
 
@@ -34,6 +37,9 @@ Length of `seqName`, or `undefined` if it is not in the file.
 
 Sequence bases as a string. `regionStart` defaults to `0`, `regionEnd` to the
 end of the sequence.
+
+Each call makes four reads: the record header and its two block tables (32
+bytes, at the same offsets every time), then the packed bases.
 
 The string preserves the 2bit format's case and ambiguity encoding:
 

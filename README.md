@@ -36,23 +36,15 @@ const t = new TwoBitFile({
 })
 ```
 
-Reading a sequence takes four reads: the record header and its two block
-tables, which come to 32 bytes and are at the same offsets every time you read
-that sequence, then the packed bases. Over HTTP that is four round trips per
-sequence, so a byte-range cache such as
+`getSequence` makes four reads per sequence, so over HTTP a byte-range cache such as
 [`@gmod/range-cache-filehandle`](https://github.com/GMOD/range-cache-filehandle)
-is an easy replacement for `RemoteFile`. It serves reads out of 256 KiB chunks,
-so the header reads come from memory after the first one, and neighboring
-sequences share a request.
-
-`TwoBitFile` reads the index once, in chunks sized for typical sequence names,
-so a scaffold-level assembly with hundreds of thousands of sequences costs a few
-megabytes rather than a read sized for the longest name the format allows.
+is worth swapping in for `RemoteFile`. After the first read of a sequence, its
+header comes from memory, and neighboring sequences share a request.
 
 Returned sequences preserve the file's encoding: lowercase for soft-masked
 bases, `N`/`n` for ambiguous ones.
 
-See [docs/api.md](docs/api.md) for the full API reference.
+See [docs/api.md](docs/api.md) for the full API.
 
 ## Academic use
 
